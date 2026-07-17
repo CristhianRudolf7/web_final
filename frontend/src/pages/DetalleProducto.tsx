@@ -1,0 +1,10 @@
+import { Link, useParams } from 'react-router-dom'
+import { productos } from '../data/productos'
+
+export function DetalleProducto() {
+  const { id } = useParams<{ id: string }>()
+  const producto = productos.find((item) => item.id === id)
+  if (!producto) return <section className="section-shell py-28 text-center"><p className="eyebrow mb-3">Producto no encontrado</p><h1 className="text-4xl font-extrabold text-eco-green-dark">No pudimos encontrar ese producto.</h1><Link to="/" className="mt-8 inline-block rounded-full bg-eco-green-primary px-6 py-3 font-bold text-white">Volver al marketplace</Link></section>
+
+  return <section className="section-shell py-14 lg:py-24"><Link to="/" className="mb-10 inline-block text-sm font-bold text-eco-green-primary">← Volver a productos</Link><div className="grid gap-10 lg:grid-cols-2 lg:items-start"><div className="overflow-hidden rounded-eco-lg bg-eco-green-light"><img src={producto.imagenUrl} alt={producto.nombre} className="aspect-square h-full w-full object-cover" /></div><div className="pt-2"><p className="eyebrow mb-4">Producto local · Junín</p><h1 className="text-5xl font-extrabold tracking-tight text-eco-green-dark">{producto.nombre}</h1><p className="mt-5 text-lg leading-8 text-slate-600">{producto.descripcion}</p><div className="mt-8 flex items-end gap-4"><span className="text-4xl font-extrabold text-eco-green-primary">S/ {producto.precio.toFixed(2)}</span><span className="mb-1 text-sm text-slate-500">por unidad</span></div><div className="mt-8 grid gap-3 rounded-eco-md bg-eco-green-light/60 p-5 text-sm"><p><strong className="text-eco-green-dark">Stock disponible:</strong> {producto.stock} unidades</p><p><strong className="text-eco-green-dark">Agricultor:</strong> {producto.agricultorNombre}</p><p><strong className="text-eco-green-dark">Contacto:</strong> {producto.agricultorContacto}</p></div><button className="mt-8 w-full rounded-full bg-eco-green-primary px-7 py-4 font-bold text-white shadow-lg shadow-eco-green-primary/20 transition hover:bg-eco-green-dark">Contactar agricultor</button></div></div></section>
+}
