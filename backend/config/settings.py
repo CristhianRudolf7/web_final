@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'usuarios',
+    'productos',
 ]
 
 MIDDLEWARE = [
@@ -78,16 +79,41 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'nave_db',
-        'USER': 'nave_user',
-        'PASSWORD': 'nave_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+import psycopg2
+
+POSTGRES_RUNNING = False
+try:
+    _conn = psycopg2.connect(
+        dbname='nave_db',
+        user='nave_user',
+        password='nave_password',
+        host='localhost',
+        port='5432',
+        connect_timeout=2
+    )
+    _conn.close()
+    POSTGRES_RUNNING = True
+except Exception:
+    pass
+
+if POSTGRES_RUNNING:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'nave_db',
+            'USER': 'nave_user',
+            'PASSWORD': 'nave_password',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -125,6 +151,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -118,3 +118,28 @@ class ValidarSesionView(APIView):
 
     def get(self, request):
         return Response({'autenticado': True, 'dni': request.user.dni}, status=status.HTTP_200_OK)
+
+
+class PerfilView(APIView):
+    """
+    Vista protegida para obtener y actualizar el perfil del usuario autenticado.
+    Soporta peticiones GET (obtener perfil), PUT (actualización completa) y PATCH (actualización parcial).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = UsuarioSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        serializer = UsuarioSerializer(request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = UsuarioSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

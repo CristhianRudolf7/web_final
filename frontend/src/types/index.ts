@@ -2,9 +2,11 @@ export interface Producto {
   id: string
   nombre: string
   descripcion: string
-  precio: number
+  precio: number | string
   stock: number
-  imagenUrl: string
-  agricultorNombre: string
-  agricultorContacto: string
+  imagen?: string | null
+  imagenUrl?: string | null
+  agricultorNombre?: string
+  agricultorContacto?: string
+  fecha_creacion?: string
 }
