@@ -155,42 +155,42 @@ Este sprint consiste en desarrollar los endpoints de gestión de productos priva
 Este sprint se enfoca en desarrollar la lógica de base de datos y los endpoints para parcelas y lecturas históricas de sensores, implementar la descarga de reportes estructurados desde el backend en CSV/JSON, y construir la interfaz del panel de parcelas con filtros dinámicos y rutas seguras en React.
 
 #### Modelos y API de Parcelas y Sensores
-- [ ] Diseñar y crear el modelo `Parcela` en Django:
+- [x] Diseñar y crear el modelo `Parcela` en Django:
   - `id`: `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`.
   - `agricultor`: `models.ForeignKey(User, on_delete=models.CASCADE, related_name='parcelas')`.
   - `nombre`: `models.CharField(max_length=255)`.
   - `ubicacion`: `models.CharField(max_length=255)`.
   - `cultivo_actual`: `models.ForeignKey('productos.Producto', on_delete=models.SET_NULL, null=True, blank=True)`.
   - `fecha_creacion`: `models.DateTimeField(auto_now_add=True)`.
-- [ ] Diseñar y crear el modelo `LecturaSensor` para almacenar la telemetría histórica:
+- [x] Diseñar y crear el modelo `LecturaSensor` para almacenar la telemetría histórica:
   - `id`: `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`.
   - `parcela`: `models.ForeignKey(Parcela, on_delete=models.CASCADE, related_name='lecturas')`.
   - `temperatura`: `models.DecimalField(max_digits=5, decimal_places=2)`.
   - `humedad`: `models.DecimalField(max_digits=5, decimal_places=2)`.
   - `ph`: `models.DecimalField(max_digits=4, decimal_places=2)`.
   - `fecha_registro`: `models.DateTimeField(auto_now_add=True)`.
-- [ ] Configurar el backend para permitir filtros avanzados:
+- [x] Configurar el backend para permitir filtros avanzados:
   - Instalar e integrar `django-filter` para proporcionar filtrado sobre `/api/parcelas/` y `/api/parcelas/<uuid>/historico/`.
   - Permitir filtros por rango de fechas en las lecturas (`fecha_registro__gte`, `fecha_registro__lte`).
-- [ ] Implementar la exportación de datos en el backend mediante un endpoint dedicado (`GET /api/parcelas/<uuid>/exportar/`):
+- [x] Implementar la exportación de datos en el backend mediante un endpoint dedicado (`GET /api/parcelas/<uuid>/exportar/`):
   - El endpoint debe recibir un parámetro `format` en la query (`?format=csv` o `?format=json`).
   - Para CSV: Utilizar el módulo nativo `csv` de Python, escribir las filas sobre un objeto `HttpResponse` estableciendo el Content-Type a `text/csv` y añadiendo la cabecera `Content-Disposition: attachment; filename="historico_parcela.csv"`.
   - Para JSON: Serializar directamente las lecturas filtradas y retornar un `JsonResponse` estructurado.
 
 #### Interfaz de Gestión de Parcelas en Frontend
-- [ ] Crear la página **ParcelasPanel.tsx** en `/src/pages/`:
+- [x] Crear la página **ParcelasPanel.tsx** en `/src/pages/`:
   - Consumir el endpoint `GET /api/parcelas/` al cargar la vista y mapear los datos a una tabla responsiva con Tailwind CSS.
   - Implementar filtros interactivos en el frontend (búsqueda por nombre de la parcela, selección de cultivo actual y filtrado por rango de fechas).
-- [ ] Implementar botones de exportación directa de la lista de parcelas en la tabla:
+- [x] Implementar botones de exportación directa de la lista de parcelas en la tabla:
   - Utilizar una función utilitaria en TypeScript para generar archivos al vuelo: convertir el estado actual en una cadena CSV o en una cadena JSON indentada.
   - Provocar la descarga en el navegador creando un objeto `Blob` y un link temporal `URL.createObjectURL(blob)` para forzar el evento de descarga nativo.
-- [ ] En la tabla de parcelas, añadir tres botones de acción por fila:
+- [x] En la tabla de parcelas, añadir tres botones de acción por fila:
   - **Ver Detalle:** Utilizar `useNavigate` de `react-router-dom` para redirigir a `/parcelas/:uuid`.
   - **Ver Mapa:** Utilizar `useNavigate` para redirigir a `/parcelas/:uuid/mapa`.
   - **Producto:** Abrir un modal en el que se cargue la lista de productos del agricultor logueado (Sprint 3) y al seleccionar uno, enviar una solicitud `PATCH` a `/api/parcelas/<uuid>/` para actualizar el campo `cultivo_actual`.
 
 #### Vista Detallada de Parcela por UUID
-- [ ] Desarrollar la vista **ParcelaDetalle.tsx** en `/src/pages/`:
+- [x] Desarrollar la vista **ParcelaDetalle.tsx** en `/src/pages/`:
   - Implementar una validación de formato mediante expresión regular en la carga del componente para confirmar que el parámetro `:uuid` de la URL cumple con la estructura regex estándar de un UUID (`/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i`). En caso de ser inválido, redirigir al usuario a una vista de error.
   - Consumir el histórico detallado de sensores (`GET /api/parcelas/<uuid>/historico/`).
   - Renderizar los datos en una tabla ordenada cronológicamente (más recientes primero) que incluya: Fecha, Temperatura, Humedad y pH.

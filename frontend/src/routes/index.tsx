@@ -6,6 +6,8 @@ import { DetalleProducto } from '../pages/DetalleProducto'
 import { Landing } from '../pages/Landing'
 import { Login } from '../pages/Login'
 import { ProductosPanel } from '../pages/ProductosPanel'
+import { ParcelasPanel } from '../pages/ParcelasPanel'
+import { ParcelaDetalle } from '../pages/ParcelaDetalle'
 import { Perfil } from '../pages/Perfil'
 
 // Placeholders para sprints futuros
@@ -34,7 +36,8 @@ export function AppRoutes() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="productos" element={<ProductosPanel />} />
-          <Route path="parcelas" element={<ComingSoon label="Mis Parcelas" />} />
+          <Route path="parcelas" element={<ParcelasPanel />} />
+          <Route path="parcelas/:uuid" element={<ParcelaDetalle />} />
           <Route path="datos-parcelas" element={<ComingSoon label="Datos de Parcelas" />} />
           <Route path="perfil" element={<Perfil />} />
         </Route>

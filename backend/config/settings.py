@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'usuarios',
     'productos',
+    'django_filters',
+    'parcelas',
 ]
 
 MIDDLEWARE = [
@@ -166,6 +168,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'usuarios.auth_backends.CookieJWTAuthentication',
     ),
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
     ],
