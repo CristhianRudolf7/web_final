@@ -39,38 +39,38 @@ Este sprint se enfoca en establecer las bases de datos de PostgreSQL dentro del 
 Este sprint se enfoca en inicializar la aplicación cliente dentro de la carpeta [frontend/] con Vite, React, TypeScript y Tailwind CSS, configurar el tema visual de fondo blanco y estilo ecológico, e implementar la navegación pública del marketplace y el inicio de sesión.
 
 #### Inicialización del Frontend y Configuración Estructural
-- [ ] Inicializar la aplicación utilizando Vite en el directorio [frontend/] con el comando `npm create vite@latest . -- --template react-ts`.
-- [ ] Trabajar dentro de [frontend/] e instalar dependencias esenciales de enrutamiento y HTTP: `react-router-dom` y `axios`.
-- [ ] Crear la estructura base de directorios del frontend:
+- [x] Inicializar la aplicación utilizando Vite en el directorio [frontend/] con el comando `npm create vite@latest . -- --template react-ts`.
+- [x] Trabajar dentro de [frontend/] e instalar dependencias esenciales de enrutamiento y HTTP: `react-router-dom` y `axios`.
+- [x] Crear la estructura base de directorios del frontend:
   - `/src/components` (para componentes reutilizables como botones, inputs, layout).
   - `/src/pages` (para vistas de página: Landing, Detalle de Producto, Login).
   - `/src/routes` (para configuración de rutas).
   - `/src/types` (para interfaces de TypeScript).
   - `/src/styles` (para configuraciones de CSS global).
-- [ ] Instalar Tailwind CSS y generar sus archivos de configuración (`npx tailwindcss init -p`).
-- [ ] Configurar el archivo `tailwind.config.js` extendiendo el tema para forzar el **diseño con fondo blanco y estilo ecológico**:
+- [x] Instalar Tailwind CSS y generar sus archivos de configuración (`npx tailwindcss init -p`).
+- [x] Configurar el archivo `tailwind.config.js` extendiendo el tema para forzar el **diseño con fondo blanco y estilo ecológico**:
   - Definir la paleta de colores ecológicos:
     - `eco-green-light`: `#E8F5E9` (verde claro para fondos suaves y detalles).
     - `eco-green-primary`: `#2E7D32` (verde esmeralda ecológico para elementos principales y botones).
     - `eco-green-dark`: `#1B5E20` (verde bosque profundo para textos importantes y hovers).
     - `eco-white`: `#FFFFFF` (fondo blanco puro obligatorio).
   - Configurar bordes suaves y orgánicos extendiendo `borderRadius` (ej: `eco-sm: '12px'`, `eco-md: '18px'`, `eco-lg: '24px'`).
-- [ ] Importar la tipografía moderna "Outfit" de Google Fonts en `/src/styles/index.css` y configurarla como fuente primaria de la aplicación.
-- [ ] Implementar la clase de fondo global en el body de `index.css` para asegurar el fondo blanco limpio de la interfaz.
+- [x] Importar la tipografía moderna "Outfit" de Google Fonts en `/src/styles/index.css` y configurarla como fuente primaria de la aplicación.
+- [x] Implementar la clase de fondo global en el body de `index.css` para asegurar el fondo blanco limpio de la interfaz.
 
 #### Componentes Comunes y Layout Heredable
-- [ ] Diseñar el componente `Header` responsivo y ecológico:
+- [x] Diseñar el componente `Header` responsivo y ecológico:
   - Fondo blanco puro con sombra muy sutil (`bg-white shadow-sm border-b border-eco-green-light`).
   - Lógica reactiva para pantallas móviles (mediante un hook `useState` para controlar el estado de apertura/cierre del menú hamburguesa).
   - En mobile, el menú hamburguesa debe deslizarse o abrirse de forma limpia cubriendo las opciones de secciones del landing y botón de login.
-- [ ] Diseñar el componente `Footer`:
+- [x] Diseñar el componente `Footer`:
   - Contenido minimalista que incluya enlaces de contacto, redes del marketplace y colores de acento verdes.
-- [ ] Crear el componente `Layout` público utilizando el componente `<Outlet />` de `react-router-dom`:
+- [x] Crear el componente `Layout` público utilizando el componente `<Outlet />` de `react-router-dom`:
   - Este layout encapsulará el `Header` y el `Footer`, asegurando que todas las vistas secundarias (landing page, detalle de productos y formulario de inicio de sesión) los hereden automáticamente de forma limpia.
 
 #### Vistas del Marketplace y Routing
-- [ ] Implementar la configuración de rutas en `/src/routes/index.tsx` usando `BrowserRouter`, enlazando la raíz `/` a la Landing Page, `/productos/:id` al detalle del producto y `/login` al formulario de inicio de sesión.
-- [ ] Crear el archivo `/src/types/index.ts` y definir la interfaz TypeScript para tipar los productos:
+- [x] Implementar la configuración de rutas en `/src/routes/index.tsx` usando `BrowserRouter`, enlazando la raíz `/` a la Landing Page, `/productos/:id` al detalle del producto y `/login` al formulario de inicio de sesión.
+- [x] Crear el archivo `/src/types/index.ts` y definir la interfaz TypeScript para tipar los productos:
   ```typescript
   export interface Producto {
     id: string; // Representado en el backend como UUID
@@ -83,15 +83,15 @@ Este sprint se enfoca en inicializar la aplicación cliente dentro de la carpeta
     agricultorContacto: string;
   }
   ```
-- [ ] Desarrollar la **Landing Page** (Estilo Marketplace Adidas):
+- [x] Desarrollar la **Landing Page** (Estilo Marketplace Adidas):
   - Contenedor principal con fondo blanco y espaciado ecológico.
   - Implementar una sección hero minimalista con tipografía grande y tonos verdes ecológicos.
   - Renderizar una grilla responsiva de productos: `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6`.
   - Crear el componente `ProductoCard` que represente cada producto con su foto (efecto hover de zoom suave `hover:scale-105 transition-all duration-300`), nombre y precio.
-- [ ] Desarrollar la vista **Detalle del Producto** en `/src/pages/DetalleProducto.tsx`:
+- [x] Desarrollar la vista **Detalle del Producto** en `/src/pages/DetalleProducto.tsx`:
   - Leer el parámetro `:id` (UUID) usando `useParams()`.
   - Maquetar una interfaz de doble columna (desktop): columna izquierda para galería/carrusel de imágenes del producto; columna derecha para información detallada (precio destacado en verde, descripción del cultivo ecológico, stock y tarjeta con la información de contacto y nombre del agricultor).
-- [ ] Desarrollar la vista de **Login** en `/src/pages/Login.tsx`:
+- [x] Desarrollar la vista de **Login** en `/src/pages/Login.tsx`:
   - Asegurar la herencia del Header y Footer públicos a través del `Layout`.
   - Diseñar el formulario en una tarjeta centrada con bordes redondeados y fondo blanco.
   - Implementar validaciones tipadas en el DNI (8 caracteres numéricos obligatorios) y contraseña (mínimo 6 caracteres).
@@ -104,7 +104,7 @@ Este sprint se enfoca en inicializar la aplicación cliente dentro de la carpeta
 Este sprint consiste en desarrollar los endpoints de gestión de productos privados en el backend de Django, configurar la interfaz del panel de control privado con navegación lateral responsive en React, e integrar el CRUD de productos del agricultor con subida de imágenes y validaciones.
 
 #### Backend del Inventario de Productos
-- [ ] Diseñar y crear el modelo `Producto` en la app `productos` de Django:
+- [x] Diseñar y crear el modelo `Producto` en la app `productos` de Django:
   - `id`: `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`.
   - `nombre`: `models.CharField(max_length=255)`.
   - `descripcion`: `models.TextField()`.
@@ -113,38 +113,38 @@ Este sprint consiste en desarrollar los endpoints de gestión de productos priva
   - `imagen`: `models.ImageField(upload_to='productos/', null=True, blank=True)`.
   - `agricultor`: `models.ForeignKey(User, on_delete=models.CASCADE, related_name='productos')`.
   - `fecha_creacion`: `models.DateTimeField(auto_now_add=True)` (asegurar el guardado con la zona horaria de Perú).
-- [ ] Crear el serializador `ProductoSerializer` en `productos/serializers.py`:
+- [x] Crear el serializador `ProductoSerializer` en `productos/serializers.py`:
   - Implementar validaciones para evitar precios negativos (`precio > 0`) o stock menor a cero (`stock >= 0`).
   - Incluir campos de lectura/escritura de imágenes de forma segura.
-- [ ] Crear la vista `ProductoViewSet` en `productos/views.py` heredando de `viewsets.ModelViewSet`:
+- [x] Crear la vista `ProductoViewSet` en `productos/views.py` heredando de `viewsets.ModelViewSet`:
   - Proteger la vista con `permission_classes = [permissions.IsAuthenticated]`.
   - Sobrescribir el método `get_queryset(self)` para retornar únicamente los productos asociados al agricultor autenticado (`self.request.user`).
   - Sobrescribir el método `perform_create(self, serializer)` para asignar automáticamente al agricultor logueado (`serializer.save(agricultor=self.request.user)`).
-- [ ] Escribir tests de integración con `pytest` que comprueben:
+- [x] Escribir tests de integración con `pytest` que comprueben:
   - Creación de producto con imagen mockeada.
   - Edición y borrado exitoso por parte del propietario del producto.
   - Bloqueo en caso de que otro usuario intente editar o borrar un producto que no es suyo (`HTTP 403 Forbidden`).
 
 #### Estructura del Panel Privado (Dashboard Layout)
-- [ ] Crear el componente `DashboardLayout.tsx` en `/src/components/layout/`:
+- [x] Crear el componente `DashboardLayout.tsx` en `/src/components/layout/`:
   - Configurar una estructura grid o flexbox que incluya el Header privado en la parte superior y una sección principal que contenga al Sidebar y al contenido dinámico.
-- [ ] Crear el componente `SidebarPrivado.tsx`:
+- [x] Crear el componente `SidebarPrivado.tsx`:
   - En desktop: Fijo a la izquierda con ancho predeterminado (`w-64`), fondo blanco y bordes verdes ligeros (`bg-white border-r border-eco-green-light`). Debe desplazar el contenido del panel hacia la derecha de manera fluida.
   - En mobile: Oculto por defecto. Al activarse por el botón del header, debe comportarse como un cajón deslizable (drawer) que se superpone sobre la interfaz principal con un fondo oscuro translúcido (`bg-black/50`).
   - Estilos de enlaces: Utilizar `<NavLink>` de `react-router-dom` aplicando clases dinámicas de Tailwind CSS (cuando esté activo, usar texto verde `text-eco-green-primary` y fondo suave `bg-eco-green-light`).
   - Enlaces del menú: Dashboard, Productos, Mis Parcelas, Datos de Parcelas, Perfil, Cerrar Sesión.
-- [ ] Desarrollar la página de **Perfil** (`Perfil.tsx`):
+- [x] Desarrollar la página de **Perfil** (`Perfil.tsx`):
   - Formulario de sólo lectura que muestre el DNI e información de contacto del agricultor.
   - Habilitar modo edición para actualizar el correo, teléfono y nombre enviando peticiones `PUT` o `PATCH` al endpoint de perfil del backend.
 
 #### Integración del CRUD de Productos en Frontend
-- [ ] Crear la página **ProductosPanel.tsx** en `/src/pages/`:
+- [x] Crear la página **ProductosPanel.tsx** en `/src/pages/`:
   - Renderizar una tabla responsive (`min-w-full divide-y`) que muestre la lista de productos del agricultor con columnas para: miniatura de imagen, nombre, precio, stock en inventario y acciones (iconos de editar y eliminar).
-- [ ] Crear el componente modal `ProductoFormModal.tsx`:
+- [x] Crear el componente modal `ProductoFormModal.tsx`:
   - Formulario con campos controlados en React (`nombre`, `descripcion`, `precio`, `stock`, `imagen`).
   - Lógica para detectar si se está creando un nuevo producto o editando uno existente (cambiando títulos y botones en consecuencia).
   - Manejo de envío de datos mediante `FormData` para soportar la subida del archivo de imagen (`multipart/form-data`) a través de Axios.
-- [ ] Implementar la confirmación y eliminación de productos:
+- [x] Implementar la confirmación y eliminación de productos:
   - Crear un modal de advertencia estilizado en verde y rojo antes de proceder a la eliminación física del producto.
   - Actualizar el estado de la lista de productos en el frontend inmediatamente después de un borrado o edición exitosa.
 
