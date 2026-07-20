@@ -1,3 +1,5 @@
+import { NotificationBell } from '../NotificationBell'
+
 interface HeaderPrivadoProps {
   onToggleSidebar: () => void
   usuarioNombre?: string
@@ -21,8 +23,9 @@ export function HeaderPrivado({ onToggleSidebar, usuarioNombre }: HeaderPrivadoP
         <span className="text-md font-extrabold text-eco-green-dark">CultivoPrivado</span>
       </div>
 
-      {/* Right-aligned User Greeting & Status */}
+      {/* Right-aligned User Greeting, Notifications & Status */}
       <div className="ml-auto flex items-center gap-4">
+        <NotificationBell />
         <div className="text-right">
           <p className="text-xs font-semibold text-slate-400">Agricultor Conectado</p>
           <p className="text-sm font-bold text-eco-green-dark">

@@ -8,7 +8,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Usuario
-        fields = ['id', 'dni', 'nombre', 'apellido', 'celular', 'email', 'fecha_registro']
+        fields = ['id', 'dni', 'nombre', 'apellido', 'celular', 'email', 'telegram_chat_id', 'fecha_registro']
         read_only_fields = ['id', 'dni', 'fecha_registro']
 
 class LoginSerializer(serializers.Serializer):

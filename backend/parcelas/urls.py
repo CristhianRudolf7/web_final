@@ -5,6 +5,7 @@ from .views import (
     ActividadesSubloteView,
     ExportarDatosView,
     HistoricoLecturasView,
+    IngestaMasivaSensoresView,
     ParcelaViewSet,
     SublotesParcelaView,
     UltimoEstadoSubloteView,
@@ -39,5 +40,10 @@ urlpatterns = [
         'sublotes/<uuid:sublote_id>/ultimo-estado/',
         UltimoEstadoSubloteView.as_view(),
         name='sublote-ultimo-estado',
+    ),
+    path(
+        'sensores/ingesta-masiva/',
+        IngestaMasivaSensoresView.as_view(),
+        name='sensores-ingesta-masiva',
     ),
 ]

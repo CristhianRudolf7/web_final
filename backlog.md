@@ -255,25 +255,25 @@ Este sprint se centra en crear un plano de coordenadas interactivo en React util
 Este sprint final integra los datos recolectados en gráficos visuales, añade las notificaciones con recomendaciones automáticas y las conecta con Telegram, además de realizar las optimizaciones de rendimiento y latencia requeridas.
 
 #### Dashboard Estadístico
-- [ ] Crear la sección **Dashboard** general en el panel del frontend.
-- [ ] Integrar librerías de gráficos en React (como `Recharts` o `Chart.js`) para mostrar visualmente:
+- [x] Crear la sección **Dashboard** general en el panel del frontend.
+- [x] Integrar librerías de gráficos en React (como `Recharts` o `Chart.js`) para mostrar visualmente:
   - El histórico de evolución de temperatura, humedad y pH por parcela.
   - Comparativa de volumen de riego (litros) versus el estado de humedad del suelo.
   - Estadísticas generales de los cultivos más productivos.
 
 #### Lógica de Recomendaciones, Alertas y Notificaciones
-- [ ] Desarrollar un servicio en el backend de Django que analice las últimas lecturas de los sensores en los sublotes para disparar alertas y recomendaciones:
+- [x] Desarrollar un servicio en el backend de Django que analice las últimas lecturas de los sensores en los sublotes para disparar alertas y recomendaciones:
   - **Alerta ejemplo:** Si la humedad del sublote cae por debajo del 30%, disparar alerta de "Estrés Hídrico".
   - **Recomendación ejemplo:** Si el pH del suelo es superior a 7.5, generar recomendación "Se sugiere fertilizar con componentes acidificantes".
-- [ ] Crear el componente en el Header del panel de control para visualizar y marcar como leídas las recomendaciones y alertas generadas.
-- [ ] Configurar un sistema de integración con la API de bots de Telegram:
+- [x] Crear el componente en el Header del panel de control para visualizar y marcar como leídas las recomendaciones y alertas generadas.
+- [x] Configurar un sistema de integración con la API de bots de Telegram:
   - Desarrollar un cliente en Python que realice peticiones `POST` al webhook de Telegram.
   - Cuando se registre una alerta crítica en la base de datos, el sistema debe enviar un mensaje de notificación de forma automática al Telegram enlazado al agricultor.
 
 #### Optimización, Caché y Rendimiento
-- [ ] Configurar un sistema de caché rápido (Redis o memoria local de Django) para guardar temporalmente la última lectura disponible de los sensores de los sublotes:
+- [x] Configurar un sistema de caché rápido (Redis o memoria local de Django) para guardar temporalmente la última lectura disponible de los sensores de los sublotes:
   - El endpoint de consulta rápida del último estado no debe realizar consultas SQL repetitivas si los datos se encuentran cacheados.
-- [ ] Diseñar el endpoint de entrada masiva de sensores para que soporte la carga de **50,000 lecturas por hora**:
+- [x] Diseñar el endpoint de entrada masiva de sensores para que soporte la carga de **50,000 lecturas por hora**:
   - Asegurar que no se bloquee el hilo principal de Django utilizando inserciones masivas de base de datos (`bulk_create`) o mediante el uso de colas de tareas asíncronas (Celery con Redis).
-- [ ] Medir y garantizar que la latencia de respuesta general de la API de lectura se mantenga por debajo de los 500 ms.
-- [ ] Realizar pruebas de rendimiento de carga con `k6` y documentar los resultados de latencia y concurrencia.
+- [x] Medir y garantizar que la latencia de respuesta general de la API de lectura se mantenga por debajo de los 500 ms.
+- [x] Realizar pruebas de rendimiento de carga con `k6` y documentar los resultados de latencia y concurrencia.

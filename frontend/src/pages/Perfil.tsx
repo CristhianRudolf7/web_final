@@ -9,6 +9,7 @@ interface Usuario {
   apellido: string
   email: string
   celular: string
+  telegram_chat_id?: string | null
   fecha_registro: string
 }
 
@@ -20,6 +21,7 @@ export function Perfil() {
   const [apellido, setApellido] = useState(usuario.apellido)
   const [email, setEmail] = useState(usuario.email)
   const [celular, setCelular] = useState(usuario.celular || '')
+  const [telegramChatId, setTelegramChatId] = useState(usuario.telegram_chat_id || '')
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -30,6 +32,7 @@ export function Perfil() {
     setApellido(usuario.apellido)
     setEmail(usuario.email)
     setCelular(usuario.celular || '')
+    setTelegramChatId(usuario.telegram_chat_id || '')
     setEditing(false)
     setError('')
     setSuccess('')
@@ -51,7 +54,7 @@ export function Perfil() {
     try {
       const response = await axios.patch(
         '/api/perfil/',
-        { nombre, apellido, email, celular },
+        { nombre, apellido, email, celular, telegram_chat_id: telegramChatId },
         { withCredentials: true }
       )
       setUsuario(response.data)
@@ -193,6 +196,29 @@ export function Perfil() {
                   : 'border-slate-100 bg-slate-50 text-slate-600'
               }`}
             />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="telegramChatId" className="mb-2 block text-sm font-bold text-eco-green-dark">
+              Telegram Chat ID
+            </label>
+            <input
+              id="telegramChatId"
+              type="text"
+              value={telegramChatId}
+              onChange={(e) => setTelegramChatId(e.target.value.replace(/[^\d-]/g, ''))}
+              disabled={!editing || loading}
+              placeholder="Ej: 123456789"
+              className={`w-full rounded-xl border px-4 py-3.5 outline-none transition ${
+                editing
+                  ? 'border-slate-200 focus:border-eco-green-primary focus:ring-4 focus:ring-eco-green-primary/10'
+                  : 'border-slate-100 bg-slate-50 text-slate-600'
+              }`}
+            />
+            <p className="mt-2 text-xs text-slate-400">
+              Vincula tu cuenta de Telegram para recibir alertas críticas (como estrés hídrico) en tiempo real.
+              Escríbele a nuestro bot y pega aquí el Chat ID que te devuelve.
+            </p>
           </div>
         </div>
 

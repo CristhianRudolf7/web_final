@@ -184,3 +184,32 @@ class UltimoEstadoSubloteSerializer(serializers.Serializer):
                 'El pH debe estar entre 0 y 14.'
             )
         return value
+
+
+class IngestaSensorItemSerializer(serializers.Serializer):
+    """
+    Item individual para la ingesta masiva de lecturas de sensores
+    (Sprint 6). Es intencionalmente mas liviano que
+    RegistroActividadSerializer para minimizar el costo de validacion
+    sobre lotes grandes (hasta 50,000 lecturas/hora).
+    """
+    sublote = serializers.UUIDField()
+    temperatura = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, allow_null=True)
+    humedad = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, allow_null=True)
+    ph = serializers.DecimalField(max_digits=4, decimal_places=2, required=False, allow_null=True)
+    fecha_hora = serializers.DateTimeField(required=False)
+
+    def validate_temperatura(self, value):
+        if value is not None and (value < -10 or value > 60):
+            raise serializers.ValidationError('La temperatura debe estar entre -10 y 60 grados.')
+        return value
+
+    def validate_humedad(self, value):
+        if value is not None and (value < 0 or value > 100):
+            raise serializers.ValidationError('La humedad debe estar entre 0 y 100 por ciento.')
+        return value
+
+    def validate_ph(self, value):
+        if value is not None and (value < 0 or value > 14):
+            raise serializers.ValidationError('El pH debe estar entre 0 y 14.')
+        return value

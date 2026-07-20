@@ -46,6 +46,10 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     apellido = models.CharField(max_length=100)
     celular = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(unique=True)
+    telegram_chat_id = models.CharField(
+        max_length=64, blank=True, null=True,
+        help_text='Chat ID de Telegram vinculado para recibir alertas críticas.'
+    )
     
     # Atributos booleanos requeridos por el contrato de autenticación de Django
     is_staff = models.BooleanField(default=False)

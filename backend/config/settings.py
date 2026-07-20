@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'productos',
     'django_filters',
     'parcelas',
+    'notificaciones',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
@@ -193,3 +195,43 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# ---------------------------------------------------------------------------
+# Sprint 6 — Dashboard, Alertas/Recomendaciones, Telegram y Rendimiento
+# ---------------------------------------------------------------------------
+import os as _os_sprint6
+
+# Cache rapido para el ultimo estado de sensores por sublote. Si existe
+# REDIS_URL en el entorno se usa Redis (recomendado en produccion); en
+# caso contrario se usa la memoria local del proceso de Django.
+REDIS_URL = _os_sprint6.environ.get('REDIS_URL')
+
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'nave-local-cache',
+        }
+    }
+
+# Cliente de bots de Telegram (ver notificaciones/telegram_client.py).
+TELEGRAM_BOT_TOKEN = _os_sprint6.environ.get('TELEGRAM_BOT_TOKEN', '')
+
+# Celery + Redis para procesar de forma asincrona la ingesta masiva de
+# sensores (hasta 50,000 lecturas/hora) sin bloquear el hilo principal.
+CELERY_BROKER_URL = REDIS_URL or 'memory://'
+CELERY_RESULT_BACKEND = REDIS_URL or 'cache+memory://'
+CELERY_TASK_ALWAYS_EAGER = REDIS_URL is None  # sin Redis, ejecuta en el mismo proceso (dev/testing)
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = TIME_ZONE
