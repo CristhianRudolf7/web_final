@@ -6,8 +6,13 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import LecturaSensor, Parcela
-from .serializers import LecturaSensorSerializer, ParcelaSerializer
+from .models import LecturaSensor, Parcela, RegistroActividad, Sublote
+from .serializers import (
+    LecturaSensorSerializer,
+    ParcelaSerializer,
+    RegistroActividadSerializer,
+    SubloteSerializer,
+)
 
 
 class ParcelaViewSet(viewsets.ModelViewSet):
@@ -134,3 +139,104 @@ class ExportarDatosView(APIView):
         """Genera y retorna las lecturas en formato JSON."""
         serializer = LecturaSensorSerializer(lecturas, many=True)
         return JsonResponse(serializer.data, safe=False)
+
+
+class SublotesParcelaView(APIView):
+    """Lista y crea sublotes dentro de una parcela del usuario autenticado."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_parcela(self, request, parcela_id):
+        try:
+            return Parcela.objects.get(id=parcela_id, agricultor=request.user)
+        except Parcela.DoesNotExist:
+            return None
+
+    def get(self, request, parcela_id):
+        parcela = self.get_parcela(request, parcela_id)
+        if parcela is None:
+            return Response(
+                {'error': 'Parcela no encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        sublotes = Sublote.objects.filter(parcela=parcela)
+        serializer = SubloteSerializer(sublotes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, parcela_id):
+        parcela = self.get_parcela(request, parcela_id)
+        if parcela is None:
+            return Response(
+                {'error': 'Parcela no encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = SubloteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(parcela=parcela)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ActividadesSubloteView(APIView):
+    """Registra actividades de riego o sensores en un sublote propio."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, sublote_id):
+        try:
+            sublote = Sublote.objects.select_related('parcela').get(
+                id=sublote_id,
+                parcela__agricultor=request.user,
+            )
+        except Sublote.DoesNotExist:
+            return Response(
+                {'error': 'Sublote no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = RegistroActividadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(sublote=sublote)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UltimoEstadoSubloteView(APIView):
+    """Retorna los ultimos registros de sensores y riego de un sublote propio."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, sublote_id):
+        try:
+            sublote = Sublote.objects.select_related('parcela').get(
+                id=sublote_id,
+                parcela__agricultor=request.user,
+            )
+        except Sublote.DoesNotExist:
+            return Response(
+                {'error': 'Sublote no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        ultimo_riego = (
+            RegistroActividad.objects
+            .filter(sublote=sublote, tipo_actividad=RegistroActividad.RIEGO)
+            .first()
+        )
+        ultimo_sensores = (
+            RegistroActividad.objects
+            .filter(sublote=sublote, tipo_actividad=RegistroActividad.SENSORES)
+            .first()
+        )
+
+        return Response({
+            'sublote': sublote.id,
+            'ultimo_riego': (
+                RegistroActividadSerializer(ultimo_riego).data
+                if ultimo_riego else None
+            ),
+            'ultimo_sensores': (
+                RegistroActividadSerializer(ultimo_sensores).data
+                if ultimo_sensores else None
+            ),
+        })

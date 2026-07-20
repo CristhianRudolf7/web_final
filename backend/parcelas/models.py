@@ -2,6 +2,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Parcela(models.Model):
@@ -71,3 +72,77 @@ class LecturaSensor(models.Model):
 
     def __str__(self):
         return f'Lectura {self.parcela.nombre} - {self.fecha_registro}'
+
+
+class Sublote(models.Model):
+    """Poligono normalizado que delimita un sublote dentro de una parcela."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    parcela = models.ForeignKey(
+        Parcela,
+        on_delete=models.CASCADE,
+        related_name='sublotes',
+        verbose_name='Parcela',
+    )
+    poligono = models.JSONField('Poligono')
+    ancho_escala = models.DecimalField(
+        'Ancho real del plano en metros', max_digits=10, decimal_places=2
+    )
+    largo_escala = models.DecimalField(
+        'Largo real del plano en metros', max_digits=10, decimal_places=2
+    )
+    fecha_creacion = models.DateTimeField('Fecha de creacion', auto_now_add=True)
+
+    class Meta:
+        db_table = 'sublotes'
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Sublote'
+        verbose_name_plural = 'Sublotes'
+
+    def __str__(self):
+        return f'Sublote {self.id} - {self.parcela.nombre}'
+
+
+class RegistroActividad(models.Model):
+    """Registro de riego o datos ambientales asociado a un sublote."""
+
+    RIEGO = 'riego'
+    SENSORES = 'sensores'
+
+    TIPOS_ACTIVIDAD = [
+        (RIEGO, 'Riego'),
+        (SENSORES, 'Sensores'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sublote = models.ForeignKey(
+        Sublote,
+        on_delete=models.CASCADE,
+        related_name='actividades',
+        verbose_name='Sublote',
+    )
+    tipo_actividad = models.CharField(max_length=20, choices=TIPOS_ACTIVIDAD)
+    litros_riego = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True
+    )
+    temperatura = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    humedad = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    ph = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
+    fecha_hora = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'registros_actividad'
+        ordering = ['-fecha_hora']
+        verbose_name = 'Registro de actividad'
+        verbose_name_plural = 'Registros de actividad'
+
+    def save(self, *args, **kwargs):
+        self.fecha_hora = timezone.now()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.get_tipo_actividad_display()} - {self.sublote_id}'

@@ -8,6 +8,7 @@ import { Login } from '../pages/Login'
 import { ProductosPanel } from '../pages/ProductosPanel'
 import { ParcelasPanel } from '../pages/ParcelasPanel'
 import { ParcelaDetalle } from '../pages/ParcelaDetalle'
+import { MapaInteractivo } from '../pages/MapaInteractivo'
 import { Perfil } from '../pages/Perfil'
 
 // Placeholders para sprints futuros
@@ -38,6 +39,7 @@ export function AppRoutes() {
           <Route path="productos" element={<ProductosPanel />} />
           <Route path="parcelas" element={<ParcelasPanel />} />
           <Route path="parcelas/:uuid" element={<ParcelaDetalle />} />
+          <Route path="parcelas/:uuid/mapa" element={<MapaInteractivo />} />
           <Route path="datos-parcelas" element={<ComingSoon label="Datos de Parcelas" />} />
           <Route path="perfil" element={<Perfil />} />
         </Route>

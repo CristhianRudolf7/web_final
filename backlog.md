@@ -203,14 +203,14 @@ Este sprint se enfoca en desarrollar la lógica de base de datos y los endpoints
 Este sprint se centra en crear un plano de coordenadas interactivo en React utilizando SVG para el dibujo manual de sublotes (etiquetado tipo YOLO) con almacenamiento de escala dimensional real, y la integración de modales de registro ambiental (riego/sensores) en hora peruana.
 
 #### Modelado de Sublotes y Registros en Backend
-- [ ] Diseñar y crear el modelo `Sublote` en la app `parcelas` de Django:
+- [x] Diseñar y crear el modelo `Sublote` en la app `parcelas` de Django:
   - `id`: `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`.
   - `parcela`: `models.ForeignKey(Parcela, on_delete=models.CASCADE, related_name='sublotes')`.
   - `poligono`: `models.JSONField()` (debe almacenar un array de puntos normalizados `[{ "x": float, "y": float }]` de entre `0.0` y `1.0` relativos a la escala del canvas).
   - `ancho_escala`: `models.DecimalField(max_digits=10, decimal_places=2)` (ancho total real en metros).
   - `largo_escala`: `models.DecimalField(max_digits=10, decimal_places=2)` (largo total real en metros).
   - `fecha_creacion`: `models.DateTimeField(auto_now_add=True)`.
-- [ ] Diseñar el modelo `RegistroActividad` para registrar telemetría y riego por sublote:
+- [x] Diseñar el modelo `RegistroActividad` para registrar telemetría y riego por sublote:
   - `id`: `models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)`.
   - `sublote`: `models.ForeignKey(Sublote, on_delete=models.CASCADE, related_name='actividades')`.
   - `tipo_actividad`: `models.CharField(max_length=20, choices=[('riego', 'Riego'), ('sensores', 'Sensores')])`.
@@ -219,16 +219,16 @@ Este sprint se centra en crear un plano de coordenadas interactivo en React util
   - `humedad`: `models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)`.
   - `ph`: `models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)`.
   - `fecha_hora`: `models.DateTimeField()` (se debe forzar en el backend a la hora actual de Perú `America/Lima` usando `timezone.now()`).
-- [ ] Crear endpoints en DRF para:
+- [x] Crear endpoints en DRF para:
   - `/api/parcelas/<uuid>/sublotes/` (`GET` para listar, `POST` para crear).
   - `/api/sublotes/<uuid>/actividades/` (`POST` para registrar actividades de riego/sensores).
   - `/api/sublotes/<uuid>/ultimo-estado/` (`GET` para retornar el último registro de sensores y riego).
 
 #### Interfaz del Mapa Interactivo (Lienzo SVG YOLO-like)
-- [ ] Crear el componente **MapaInteractivo.tsx** en `/src/pages/`:
+- [x] Crear el componente **MapaInteractivo.tsx** en `/src/pages/`:
   - Cabecera con pestañas interactivas: **Normal**, **Humedad**, y **Temperatura**.
   - Canvas o contenedor SVG responsivo con fondo blanco y bordes verdes que represente el plano rectangular del terreno.
-- [ ] Desarrollar la herramienta de dibujo interactiva:
+- [x] Desarrollar la herramienta de dibujo interactiva:
   - Mantener en estado de React (`puntosDibujo: Array<{x: number, y: number}>`) las coordenadas normalizadas actuales del polígono en creación.
   - Al hacer clic sobre el SVG, capturar las coordenadas del puntero relativas al tamaño actual del contenedor (`x = clickX / canvasWidth`, `y = clickY / canvasHeight`).
   - Renderizar dinámicamente círculos (`<circle>`) en los puntos de anclaje y líneas (`<line>`) conectando los puntos del polígono.
@@ -236,12 +236,12 @@ Este sprint se centra en crear un plano de coordenadas interactivo en React util
   - Formulario de Calibración: Solicitar obligatoriamente el ancho y largo reales de la escala del eje X y Y del plano (en metros) antes de guardar el sublote en la base de datos.
 
 #### Modales de Acción y Visualización de Calor
-- [ ] Desarrollar el modal de opciones de sublote:
+- [x] Desarrollar el modal de opciones de sublote:
   - Al hacer clic sobre un polígono cerrado ya guardado en el mapa, abrir un cuadro emergente flotante con dos formularios:
     - **Formulario "Regar":** Entrada numérica para volumen de riego en litros. Al enviar, hacer POST al backend.
     - **Formulario "Ingresar Datos":** Entradas numéricas para Temperatura, Humedad y pH. Al enviar, hacer POST al backend.
   - Ambos formularios deben realizar la llamada HTTP e inmediatamente refrescar el estado del mapa sin recargar la página.
-- [ ] Implementar la visualización del Mapa de Calor dinámico en React:
+- [x] Implementar la visualización del Mapa de Calor dinámico en React:
   - En el tab de **Humedad**, obtener el último porcentaje de humedad registrado de cada sublote. Pintar el fondo del polígono utilizando una función de color RGBA dinámica en base al valor (ej. `rgba(46, 125, 50, ${humedad / 100})`), donde una humedad cercana a 100% se vea verde bosque muy oscuro y 0% transparente.
   - En el tab de **Temperatura**, aplicar una escala de color proporcional al valor térmico registrado (ej. degradado verde claro a verde oliva oscuro según rangos de temperatura).
   - En el tab **Normal**, pintar los polígonos con un borde verde y un fondo semitransparente muy suave.

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import LecturaSensor, Parcela
+from .models import LecturaSensor, Parcela, RegistroActividad, Sublote
 
 
 @admin.register(Parcela)
@@ -20,3 +20,29 @@ class LecturaSensorAdmin(admin.ModelAdmin):
     list_display = ('parcela', 'temperatura', 'humedad', 'ph', 'fecha_registro')
     list_filter = ('parcela', 'fecha_registro')
     readonly_fields = ('id', 'fecha_registro')
+
+
+@admin.register(Sublote)
+class SubloteAdmin(admin.ModelAdmin):
+    """Configuracion del admin para el modelo Sublote."""
+
+    list_display = ('id', 'parcela', 'ancho_escala', 'largo_escala', 'fecha_creacion')
+    list_filter = ('parcela', 'fecha_creacion')
+    readonly_fields = ('id', 'fecha_creacion')
+
+
+@admin.register(RegistroActividad)
+class RegistroActividadAdmin(admin.ModelAdmin):
+    """Configuracion del admin para actividades de sublotes."""
+
+    list_display = (
+        'sublote',
+        'tipo_actividad',
+        'litros_riego',
+        'temperatura',
+        'humedad',
+        'ph',
+        'fecha_hora',
+    )
+    list_filter = ('tipo_actividad', 'fecha_hora')
+    readonly_fields = ('id', 'fecha_hora')

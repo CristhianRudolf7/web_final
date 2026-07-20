@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import LecturaSensor, Parcela
+from .models import LecturaSensor, Parcela, RegistroActividad, Sublote
 
 
 class ParcelaSerializer(serializers.ModelSerializer):
@@ -54,6 +54,120 @@ class LecturaSensorSerializer(serializers.ModelSerializer):
                 'La temperatura debe estar entre -10 y 60 grados.'
             )
         return value
+
+
+class SubloteSerializer(serializers.ModelSerializer):
+    """Serializador de sublotes con validacion de puntos normalizados."""
+
+    class Meta:
+        model = Sublote
+        fields = [
+            'id',
+            'parcela',
+            'poligono',
+            'ancho_escala',
+            'largo_escala',
+            'fecha_creacion',
+        ]
+        read_only_fields = ['id', 'parcela', 'fecha_creacion']
+
+    def validate_poligono(self, value):
+        if not isinstance(value, list) or len(value) < 3:
+            raise serializers.ValidationError(
+                'El poligono debe tener al menos 3 puntos.'
+            )
+
+        for punto in value:
+            if not isinstance(punto, dict) or 'x' not in punto or 'y' not in punto:
+                raise serializers.ValidationError(
+                    'Cada punto debe tener coordenadas x e y.'
+                )
+            try:
+                x = float(punto['x'])
+                y = float(punto['y'])
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    'Las coordenadas deben ser numericas.'
+                )
+            if not 0 <= x <= 1 or not 0 <= y <= 1:
+                raise serializers.ValidationError(
+                    'Las coordenadas deben estar normalizadas entre 0.0 y 1.0.'
+                )
+
+        return value
+
+    def validate_ancho_escala(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('El ancho debe ser mayor que cero.')
+        return value
+
+    def validate_largo_escala(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('El largo debe ser mayor que cero.')
+        return value
+
+
+class RegistroActividadSerializer(serializers.ModelSerializer):
+    """Serializador para actividades de riego y sensores por sublote."""
+
+    class Meta:
+        model = RegistroActividad
+        fields = [
+            'id',
+            'sublote',
+            'tipo_actividad',
+            'litros_riego',
+            'temperatura',
+            'humedad',
+            'ph',
+            'fecha_hora',
+        ]
+        read_only_fields = ['id', 'sublote', 'fecha_hora']
+
+    def validate(self, attrs):
+        tipo = attrs.get('tipo_actividad')
+
+        if tipo == RegistroActividad.RIEGO:
+            litros = attrs.get('litros_riego')
+            if litros is None or litros <= 0:
+                raise serializers.ValidationError({
+                    'litros_riego': 'Debe registrar un volumen mayor que cero.'
+                })
+
+        if tipo == RegistroActividad.SENSORES:
+            requeridos = ['temperatura', 'humedad', 'ph']
+            faltantes = [campo for campo in requeridos if attrs.get(campo) is None]
+            if faltantes:
+                raise serializers.ValidationError(
+                    {campo: 'Este campo es obligatorio.' for campo in faltantes}
+                )
+
+        return attrs
+
+    def validate_temperatura(self, value):
+        if value is not None and (value < -10 or value > 60):
+            raise serializers.ValidationError(
+                'La temperatura debe estar entre -10 y 60 grados.'
+            )
+        return value
+
+    def validate_humedad(self, value):
+        if value is not None and (value < 0 or value > 100):
+            raise serializers.ValidationError(
+                'La humedad debe estar entre 0 y 100 por ciento.'
+            )
+        return value
+
+    def validate_ph(self, value):
+        if value is not None and (value < 0 or value > 14):
+            raise serializers.ValidationError('El pH debe estar entre 0 y 14.')
+        return value
+
+
+class UltimoEstadoSubloteSerializer(serializers.Serializer):
+    sublote = serializers.UUIDField()
+    ultimo_riego = RegistroActividadSerializer(allow_null=True)
+    ultimo_sensores = RegistroActividadSerializer(allow_null=True)
 
     def validate_humedad(self, value):
         """Valida que la humedad esté entre 0 y 100 por ciento."""
