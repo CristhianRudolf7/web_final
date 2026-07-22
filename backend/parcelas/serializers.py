@@ -57,7 +57,10 @@ class LecturaSensorSerializer(serializers.ModelSerializer):
 
 
 class SubloteSerializer(serializers.ModelSerializer):
-    """Serializador de sublotes con validacion de puntos normalizados."""
+    """Serializador de sublotes con validacion de puntos normalizados y ultimo estado."""
+
+    ultimo_riego = serializers.SerializerMethodField()
+    ultimo_sensores = serializers.SerializerMethodField()
 
     class Meta:
         model = Sublote
@@ -68,8 +71,18 @@ class SubloteSerializer(serializers.ModelSerializer):
             'ancho_escala',
             'largo_escala',
             'fecha_creacion',
+            'ultimo_riego',
+            'ultimo_sensores',
         ]
         read_only_fields = ['id', 'parcela', 'fecha_creacion']
+
+    def get_ultimo_riego(self, obj):
+        ultimo = obj.actividades.filter(tipo_actividad=RegistroActividad.RIEGO).first()
+        return RegistroActividadSerializer(ultimo).data if ultimo else None
+
+    def get_ultimo_sensores(self, obj):
+        ultimo = obj.actividades.filter(tipo_actividad=RegistroActividad.SENSORES).first()
+        return RegistroActividadSerializer(ultimo).data if ultimo else None
 
     def validate_poligono(self, value):
         if not isinstance(value, list) or len(value) < 3:

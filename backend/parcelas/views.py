@@ -143,6 +143,43 @@ class ExportarDatosView(APIView):
         return JsonResponse(serializer.data, safe=False)
 
 
+def punto_en_poligono_py(px, py, poligono):
+    dentro = False
+    n = len(poligono)
+    j = n - 1
+    for i in range(n):
+        xi, yi = float(poligono[i]['x']), float(poligono[i]['y'])
+        xj, yj = float(poligono[j]['x']), float(poligono[j]['y'])
+        intersecta = ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+        if intersecta:
+            dentro = not dentro
+        j = i
+    return dentro
+
+def ccw_py(A, B, C):
+    return (C['y'] - A['y']) * (B['x'] - A['x']) > (B['y'] - A['y']) * (C['x'] - A['x'])
+
+def segmentos_se_intersecan_py(A, B, C, D):
+    return ccw_py(A, C, D) != ccw_py(B, C, D) and ccw_py(A, B, C) != ccw_py(A, B, D)
+
+def poligonos_se_solapan_py(polyA, polyB):
+    if not polyA or not polyB or len(polyA) < 3 or len(polyB) < 3:
+        return False
+    for i in range(len(polyA)):
+        a1, a2 = polyA[i], polyA[(i + 1) % len(polyA)]
+        for j in range(len(polyB)):
+            b1, b2 = polyB[j], polyB[(j + 1) % len(polyB)]
+            if segmentos_se_intersecan_py(a1, a2, b1, b2):
+                return True
+    for pt in polyA:
+        if punto_en_poligono_py(float(pt['x']), float(pt['y']), polyB):
+            return True
+    for pt in polyB:
+        if punto_en_poligono_py(float(pt['x']), float(pt['y']), polyA):
+            return True
+    return False
+
+
 class SublotesParcelaView(APIView):
     """Lista y crea sublotes dentro de una parcela del usuario autenticado."""
 
@@ -173,6 +210,15 @@ class SublotesParcelaView(APIView):
                 {'error': 'Parcela no encontrada.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        poligono_nuevo = request.data.get('poligono', [])
+        sublotes_existentes = Sublote.objects.filter(parcela=parcela)
+        for s in sublotes_existentes:
+            if poligonos_se_solapan_py(poligono_nuevo, s.poligono):
+                return Response(
+                    {'error': 'El sublote se solapa con un sublote existente en la parcela.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = SubloteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -346,3 +392,24 @@ class IngestaMasivaSensoresView(APIView):
             {'lecturas_insertadas': creados_total, 'sublotes_afectados': len(sublotes_afectados)},
             status=status.HTTP_201_CREATED,
         )
+
+
+class SubloteDetalleView(APIView):
+    """Vista para eliminar un sublote propio."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, sublote_id):
+        try:
+            sublote = Sublote.objects.select_related('parcela').get(
+                id=sublote_id,
+                parcela__agricultor=request.user,
+            )
+            sublote.delete()
+            invalidar_ultimo_estado(str(sublote_id))
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Sublote.DoesNotExist:
+            return Response(
+                {'error': 'Sublote no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )

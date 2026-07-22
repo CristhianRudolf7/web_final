@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from .serializers import LoginSerializer, UsuarioSerializer
+from .serializers import LoginSerializer, UsuarioSerializer, RegistroSerializer
 
 class LoginView(APIView):
     """
@@ -77,8 +77,8 @@ class LogoutView(APIView):
 
 class TokenRefreshView(APIView):
     """
-    Vista para regenerar el access_token utilizando el refresh_token
-    guardado en la cookie HttpOnly del cliente.
+    Vista para regenerar el access_token y rotar el refresh_token
+    utilizando la cookie HttpOnly del cliente.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -90,20 +90,32 @@ class TokenRefreshView(APIView):
         
         try:
             token = RefreshToken(token_refresco)
-            nuevo_token_acceso = token.access_token
+            nuevo_token_acceso = str(token.access_token)
+            nuevo_token_refresco = str(token)
         except TokenError:
             return Response({'error': 'El token de refresco ha expirado o es inválido.'}, status=status.HTTP_401_UNAUTHORIZED)
             
-        respuesta = Response({'detalle': 'Token de acceso renovado.'}, status=status.HTTP_200_OK)
+        respuesta = Response({'detalle': 'Tokens renovados exitosamente.'}, status=status.HTTP_200_OK)
         
         # Inyecta el nuevo access token de 30 minutos
         respuesta.set_cookie(
             key='access_token',
-            value=str(nuevo_token_acceso),
+            value=nuevo_token_acceso,
             httponly=True,
             secure=not settings.DEBUG,
             samesite='Lax',
             max_age=1800,
+            path='/'
+        )
+        
+        # Inyecta el nuevo refresh token rotado de 7 días
+        respuesta.set_cookie(
+            key='refresh_token',
+            value=nuevo_token_refresco,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            max_age=604800,
             path='/'
         )
         
@@ -142,4 +154,20 @@ class PerfilView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class RegistroView(APIView):
+    """
+    Vista para registrar un nuevo usuario en la plataforma.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializador = RegistroSerializer(data=request.data)
+        if serializador.is_valid():
+            usuario = serializador.save()
+            usuario_serializador = UsuarioSerializer(usuario)
+            return Response(usuario_serializador.data, status=status.HTTP_201_CREATED)
+        return Response(serializador.errors, status=status.HTTP_400_BAD_REQUEST)
+
 

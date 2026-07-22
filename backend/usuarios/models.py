@@ -6,13 +6,15 @@ class UsuarioManager(BaseUserManager):
     """
     Gestor personalizado para el modelo de Usuario utilizando el DNI como identificador.
     """
-    def create_user(self, dni, nombre, apellido, email, password=None, **campos_adicionales):
+    def create_user(self, dni, nombre, apellido, email=None, password=None, **campos_adicionales):
         if not dni:
             raise ValueError('El DNI es obligatorio')
-        if not email:
-            raise ValueError('El correo electrónico es obligatorio')
         
-        email = self.normalize_email(email)
+        if email:
+            email = self.normalize_email(email)
+        else:
+            email = None
+
         usuario = self.model(
             dni=dni,
             nombre=nombre,
@@ -24,7 +26,7 @@ class UsuarioManager(BaseUserManager):
         usuario.save(using=self._db)
         return usuario
 
-    def create_superuser(self, dni, nombre, apellido, email, password=None, **campos_adicionales):
+    def create_superuser(self, dni, nombre, apellido, email=None, password=None, **campos_adicionales):
         campos_adicionales.setdefault('is_staff', True)
         campos_adicionales.setdefault('is_superuser', True)
 
@@ -44,8 +46,8 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     dni = models.CharField(max_length=8, unique=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
-    celular = models.CharField(max_length=15, blank=True, null=True)
-    email = models.EmailField(unique=True)
+    celular = models.CharField(max_length=15)
+    email = models.EmailField(unique=True, blank=True, null=True)
     telegram_chat_id = models.CharField(
         max_length=64, blank=True, null=True,
         help_text='Chat ID de Telegram vinculado para recibir alertas críticas.'
@@ -59,7 +61,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     objects = UsuarioManager()
 
     USERNAME_FIELD = 'dni'
-    REQUIRED_FIELDS = ['nombre', 'apellido', 'email']
+    REQUIRED_FIELDS = ['nombre', 'apellido', 'celular']
 
     class Meta:
         verbose_name = 'usuario'

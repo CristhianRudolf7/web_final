@@ -23,7 +23,7 @@ class CookieJWTAuthentication(JWTAuthentication):
         try:
             # Validamos el token y recuperamos el usuario asociado
             token_validado = self.get_validated_token(token_acceso)
-        except InvalidToken:
+            usuario = self.get_user(token_validado)
+            return usuario, token_validado
+        except (InvalidToken, AuthenticationFailed):
             return None
-            
-        return self.get_user(token_validado), token_validado

@@ -1,46 +1,141 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { parcelasData } from '../data/parcelas'
-import { productos as productosData } from '../data/productos'
-import type { Parcela } from '../types'
+import { toast } from 'sonner'
+import axios from 'axios'
+import type { Parcela, Producto } from '../types'
 
 export function ParcelasPanel() {
   const navigate = useNavigate()
 
-  const [parcelas, setParcelas] = useState<Parcela[]>(parcelasData)
+  // Estados de datos
+  const [parcelas, setParcelas] = useState<Parcela[]>([])
+  const [productos, setProductos] = useState<Producto[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState('')
+
+  // Filtros
   const [busqueda, setBusqueda] = useState('')
   const [filtroCultivo, setFiltroCultivo] = useState('')
+
+  // Modales
+  const [modalCrear, setModalCrear] = useState(false)
   const [modalAsignar, setModalAsignar] = useState(false)
   const [parcelaSeleccionada, setParcelaSeleccionada] = useState<Parcela | null>(null)
 
-  // Get unique cultivo names for filter dropdown
+  // Formulario crear parcela
+  const [nuevaNombre, setNuevaNombre] = useState('')
+  const [nuevaUbicacion, setNuevaUbicacion] = useState('')
+  const [nuevaCultivoId, setNuevaCultivoId] = useState('')
+
+  // Estado de acción
+  const [cargandoAccion, setCargandoAccion] = useState(false)
+  const [errorModal, setErrorModal] = useState('')
+
+  const cargarDatos = async () => {
+    setCargando(true)
+    setError('')
+    try {
+      const [resParcelas, resProductos] = await Promise.all([
+        axios.get<Parcela[]>('/api/parcelas/', { withCredentials: true }),
+        axios.get<Producto[]>('/api/productos/', { withCredentials: true }),
+      ])
+      setParcelas(resParcelas.data)
+      setProductos(resProductos.data)
+    } catch (err: any) {
+      console.error('Error al cargar datos de parcelas:', err)
+      const msg = 'No se pudieron cargar las parcelas. Por favor, reintenta.'
+      setError(msg)
+      toast.error(msg)
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  useEffect(() => {
+    cargarDatos()
+  }, [])
+
+  // Cultivos únicos para el filtro desplegable
   const cultivosUnicos = Array.from(
     new Set(parcelas.map((p) => p.cultivo_nombre).filter(Boolean))
   ) as string[]
 
-  // Filter parcelas
+  // Filtrado de parcelas por búsqueda y cultivo
   const parcelasFiltradas = parcelas.filter((p) => {
-    const coincideNombre = p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+    const coincideNombre =
+      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      p.ubicacion.toLowerCase().includes(busqueda.toLowerCase())
     const coincideCultivo = filtroCultivo === '' || p.cultivo_nombre === filtroCultivo
     return coincideNombre && coincideCultivo
   })
 
+  // Crear Parcela
+  const handleCrearParcela = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorModal('')
+
+    if (!nuevaNombre.trim() || !nuevaUbicacion.trim()) {
+      const msg = 'El nombre y la ubicación son obligatorios.'
+      setErrorModal(msg)
+      toast.error(msg)
+      return
+    }
+
+    setCargandoAccion(true)
+    const nombreGuardar = nuevaNombre.trim()
+    try {
+      await axios.post(
+        '/api/parcelas/',
+        {
+          nombre: nombreGuardar,
+          ubicacion: nuevaUbicacion.trim(),
+          cultivo_actual: nuevaCultivoId || null,
+        },
+        { withCredentials: true }
+      )
+      setModalCrear(false)
+      setNuevaNombre('')
+      setNuevaUbicacion('')
+      setNuevaCultivoId('')
+      toast.success(`Parcela "${nombreGuardar}" registrada correctamente.`)
+      await cargarDatos()
+    } catch (err: any) {
+      console.error(err)
+      const msg = 'No se pudo crear la parcela. Revisa los datos.'
+      setErrorModal(msg)
+      toast.error(msg)
+    } finally {
+      setCargandoAccion(false)
+    }
+  }
+
+  // Abrir Modal Asignar Producto
   const handleAsignarClick = (parcela: Parcela) => {
     setParcelaSeleccionada(parcela)
     setModalAsignar(true)
   }
 
-  const handleAsignarProducto = (productoId: string, productoNombre: string) => {
+  // Guardar asignación de producto
+  const handleAsignarProducto = async (productoId: string | null) => {
     if (!parcelaSeleccionada) return
-    setParcelas((prev) =>
-      prev.map((p) =>
-        p.id === parcelaSeleccionada.id
-          ? { ...p, cultivo_actual: productoId, cultivo_nombre: productoNombre }
-          : p
+    setCargandoAccion(true)
+    const nombrePar = parcelaSeleccionada.nombre
+    try {
+      await axios.patch(
+        `/api/parcelas/${parcelaSeleccionada.id}/`,
+        { cultivo_actual: productoId },
+        { withCredentials: true }
       )
-    )
-    setModalAsignar(false)
-    setParcelaSeleccionada(null)
+      setModalAsignar(false)
+      setParcelaSeleccionada(null)
+      toast.success(productoId ? `Cultivo asignado a "${nombrePar}".` : `Cultivo retirado de "${nombrePar}".`)
+      await cargarDatos()
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Error al asignar el producto a la parcela.')
+    } finally {
+      setCargandoAccion(false)
+    }
   }
 
   const formatFecha = (iso: string) => {
@@ -51,7 +146,7 @@ export function ParcelasPanel() {
     })
   }
 
-  // Export CSV
+  // Exportar a CSV
   const exportarCSV = () => {
     const headers = ['Nombre', 'Ubicación', 'Cultivo Actual', 'Agricultor', 'Fecha Creación']
     const rows = parcelasFiltradas.map((p) => [
@@ -69,9 +164,10 @@ export function ParcelasPanel() {
     link.download = 'parcelas.csv'
     link.click()
     URL.revokeObjectURL(url)
+    toast.info('Archivo CSV descargado.')
   }
 
-  // Export JSON
+  // Exportar a JSON
   const exportarJSON = () => {
     const jsonContent = JSON.stringify(parcelasFiltradas, null, 2)
     const blob = new Blob([jsonContent], { type: 'application/json' })
@@ -81,33 +177,51 @@ export function ParcelasPanel() {
     link.download = 'parcelas.json'
     link.click()
     URL.revokeObjectURL(url)
+    toast.info('Archivo JSON descargado.')
   }
 
   return (
     <div className="space-y-6">
-      {/* Title Bar */}
+      {/* Barra de Título y Botones Principales */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-eco-green-light pb-6">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-eco-green-primary">Mis Parcelas</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-eco-green-primary">
+            Mis Parcelas
+          </p>
           <h1 className="text-3xl font-extrabold text-eco-green-dark mt-1">Gestión de Parcelas</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Gestiona tus parcelas y datos de sensores
+            Gestiona tus parcelas agrícolas y monitorea sus cultivos.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onClick={() => {
+              setNuevaNombre('')
+              setNuevaUbicacion('')
+              setNuevaCultivoId('')
+              setErrorModal('')
+              setModalCrear(true)
+            }}
+            className="flex items-center gap-2 rounded-xl bg-eco-green-primary px-4 py-3 font-bold text-white shadow-md shadow-eco-green-primary/10 transition hover:bg-eco-green-dark text-sm cursor-pointer"
+          >
+            <span className="text-lg leading-none">+</span>
+            Nueva Parcela
+          </button>
+
           <button
             onClick={exportarCSV}
-            className="flex items-center gap-2 rounded-xl bg-eco-green-primary px-4 py-3 font-bold text-white shadow-md shadow-eco-green-primary/10 transition hover:bg-eco-green-dark text-sm"
+            className="flex items-center gap-2 rounded-xl border-2 border-eco-green-primary px-4 py-3 font-bold text-eco-green-primary transition hover:bg-eco-green-primary hover:text-white text-sm cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
             Exportar CSV
           </button>
+
           <button
             onClick={exportarJSON}
-            className="flex items-center gap-2 rounded-xl border-2 border-eco-green-primary px-4 py-3 font-bold text-eco-green-primary transition hover:bg-eco-green-primary hover:text-white text-sm"
+            className="flex items-center gap-2 rounded-xl border-2 border-eco-green-primary px-4 py-3 font-bold text-eco-green-primary transition hover:bg-eco-green-primary hover:text-white text-sm cursor-pointer"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -117,12 +231,12 @@ export function ParcelasPanel() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filtros */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex-1">
           <input
             type="text"
-            placeholder="🔍 Buscar parcela por nombre..."
+            placeholder="🔍 Buscar parcela por nombre o ubicación..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-eco-sm focus:ring-2 focus:ring-eco-green-primary focus:border-transparent outline-none text-sm transition"
@@ -144,13 +258,22 @@ export function ParcelasPanel() {
         </div>
       </div>
 
-      {/* Table */}
-      {parcelasFiltradas.length === 0 ? (
+      {/* Tabla de Parcelas */}
+      {cargando ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-eco-green-primary border-t-transparent mx-auto"></div>
+            <p className="mt-4 text-sm font-semibold text-slate-500">Cargando parcelas del backend...</p>
+          </div>
+        </div>
+      ) : parcelasFiltradas.length === 0 ? (
         <div className="rounded-eco-lg border border-dashed border-slate-200 bg-white px-6 py-16 text-center shadow-soft">
-          <span className="text-5xl">🌱</span>
+          <span className="text-5xl">🚜</span>
           <h3 className="mt-4 text-lg font-bold text-eco-green-dark">Sin Resultados</h3>
           <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
-            No se encontraron parcelas con los filtros seleccionados.
+            {parcelas.length === 0
+              ? 'Aún no tienes parcelas registradas. ¡Haz clic en "+ Nueva Parcela" para registrar una!'
+              : 'No se encontraron parcelas que coincidan con los filtros.'}
           </p>
         </div>
       ) : (
@@ -190,7 +313,7 @@ export function ParcelasPanel() {
                       {/* Ver Detalle */}
                       <button
                         onClick={() => navigate(`/dashboard/parcelas/${parcela.id}`)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition cursor-pointer"
                         title="Ver Detalle"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
@@ -202,7 +325,7 @@ export function ParcelasPanel() {
                       {/* Ver Mapa */}
                       <button
                         onClick={() => navigate(`/dashboard/parcelas/${parcela.id}/mapa`)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition cursor-pointer"
                         title="Ver Mapa"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
@@ -213,7 +336,7 @@ export function ParcelasPanel() {
                       {/* Asignar Producto */}
                       <button
                         onClick={() => handleAsignarClick(parcela)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-eco-green-primary transition cursor-pointer"
                         title="Asignar Producto"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
@@ -226,6 +349,95 @@ export function ParcelasPanel() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modal Crear Parcela */}
+      {modalCrear && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-eco-md p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-extrabold text-eco-green-dark">
+                🌱 Registrar Nueva Parcela
+              </h2>
+              <button
+                onClick={() => setModalCrear(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearParcela} className="space-y-4">
+              {errorModal && (
+                <div role="alert" className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">
+                  ⚠️ {errorModal}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-eco-green-dark mb-1">
+                  Nombre de la Parcela *
+                </label>
+                <input
+                  type="text"
+                  value={nuevaNombre}
+                  onChange={(e) => setNuevaNombre(e.target.value)}
+                  placeholder="Ej: Fundo San José"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-eco-green-dark mb-1">
+                  Ubicación *
+                </label>
+                <input
+                  type="text"
+                  value={nuevaUbicacion}
+                  onChange={(e) => setNuevaUbicacion(e.target.value)}
+                  placeholder="Ej: Huaral, Lima"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-eco-green-dark mb-1">
+                  Cultivo Actual (Opcional)
+                </label>
+                <select
+                  value={nuevaCultivoId}
+                  onChange={(e) => setNuevaCultivoId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10 bg-white"
+                >
+                  <option value="">Sin cultivo asignado</option>
+                  {productos.map((prod) => (
+                    <option key={prod.id} value={prod.id}>
+                      {prod.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalCrear(false)}
+                  disabled={cargandoAccion}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargandoAccion}
+                  className="rounded-xl bg-eco-green-primary px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-eco-green-dark disabled:opacity-60"
+                >
+                  {cargandoAccion ? 'Guardando...' : 'Crear Parcela'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -244,22 +456,40 @@ export function ParcelasPanel() {
                 }}
                 className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                ✕
               </button>
             </div>
 
             <p className="text-sm text-slate-500 mb-4">
-              Selecciona un producto para asignar a <strong className="text-eco-green-dark">{parcelaSeleccionada?.nombre}</strong>
+              Selecciona un producto para asignar a{' '}
+              <strong className="text-eco-green-dark">{parcelaSeleccionada?.nombre}</strong>
             </p>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {productosData.map((producto) => (
+              <button
+                onClick={() => handleAsignarProducto(null)}
+                disabled={cargandoAccion}
+                className="w-full flex items-center gap-3 rounded-eco-sm border border-dashed border-slate-300 p-3 text-left transition hover:bg-red-50 hover:border-red-300 cursor-pointer"
+              >
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center text-lg">
+                  🚫
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-slate-700">Sin producto / Retirar cultivo</div>
+                  <div className="text-xs text-slate-400">Deja la parcela libre sin cultivo activo</div>
+                </div>
+              </button>
+
+              {productos.map((producto) => (
                 <button
                   key={producto.id}
-                  onClick={() => handleAsignarProducto(producto.id, producto.nombre)}
-                  className="w-full flex items-center gap-3 rounded-eco-sm border border-slate-100 p-3 text-left transition hover:bg-eco-green-light/30 hover:border-eco-green-primary"
+                  onClick={() => handleAsignarProducto(producto.id)}
+                  disabled={cargandoAccion}
+                  className={`w-full flex items-center gap-3 rounded-eco-sm border p-3 text-left transition cursor-pointer ${
+                    parcelaSeleccionada?.cultivo_actual === producto.id
+                      ? 'border-eco-green-primary bg-eco-green-light/40'
+                      : 'border-slate-100 hover:bg-eco-green-light/30 hover:border-eco-green-primary'
+                  }`}
                 >
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-eco-green-light bg-slate-50">
                     {producto.imagenUrl ? (
@@ -270,7 +500,7 @@ export function ParcelasPanel() {
                   </div>
                   <div>
                     <div className="text-sm font-bold text-eco-green-dark">{producto.nombre}</div>
-                    <div className="text-xs text-slate-400">{producto.agricultorNombre}</div>
+                    <div className="text-xs text-slate-400">S/ {parseFloat(producto.precio as any).toFixed(2)} — Stock: {producto.stock}</div>
                   </div>
                 </button>
               ))}

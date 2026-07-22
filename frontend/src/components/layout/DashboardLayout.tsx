@@ -5,37 +5,37 @@ import { HeaderPrivado } from './HeaderPrivado'
 import { SidebarPrivado } from './SidebarPrivado'
 
 export function DashboardLayout() {
-  const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const navegacion = useNavigate()
+  const [menuAbierto, setMenuAbierto] = useState(true)
   const [usuario, setUsuario] = useState<{ nombre: string; apellido: string; email: string; celular: string; dni: string } | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
     const verificarSesion = async () => {
       try {
-        const response = await axios.get('/api/perfil/', { withCredentials: true })
-        setUsuario(response.data)
-      } catch (err) {
-        console.error('Sesión no válida o expirada', err)
-        navigate('/login')
+        const respuesta = await axios.get('/api/perfil/', { withCredentials: true })
+        setUsuario(respuesta.data)
+      } catch (error) {
+        console.error('Sesión no válida o expirada', error)
+        navegacion('/login')
       } finally {
-        setLoading(false)
+        setCargando(false)
       }
     }
     verificarSesion()
-  }, [navigate])
+  }, [navegacion])
 
-  const handleLogout = async () => {
+  const alCerrarSesion = async () => {
     try {
       await axios.post('/api/logout/', {}, { withCredentials: true })
-      navigate('/login')
-    } catch (err) {
-      console.error('Error al cerrar sesión', err)
-      navigate('/login')
+      navegacion('/login')
+    } catch (error) {
+      console.error('Error al cerrar sesión', error)
+      navegacion('/login')
     }
   }
 
-  if (loading) {
+  if (cargando) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -50,22 +50,23 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* Sidebar Navigation */}
+      {/* Navegación Lateral (Sidebar) */}
       <SidebarPrivado
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onLogout={handleLogout}
+        estaAbierto={menuAbierto}
+        alCerrar={() => setMenuAbierto(false)}
+        alCerrarSesion={alCerrarSesion}
       />
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
+      {/* Área Principal de Contenido */}
+      <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300">
+        {/* Cabecera Privada con botón sándwich */}
         <HeaderPrivado
-          onToggleSidebar={() => setSidebarOpen(true)}
+          alAlternarMenu={() => setMenuAbierto(!menuAbierto)}
           usuarioNombre={usuarioNombreCompleto}
+          menuAbierto={menuAbierto}
         />
 
-        {/* Dynamic Content Body */}
+        {/* Cuerpo de Contenido Dinámico */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <Outlet context={{ usuario, setUsuario }} />
         </main>

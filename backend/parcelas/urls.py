@@ -7,6 +7,7 @@ from .views import (
     HistoricoLecturasView,
     IngestaMasivaSensoresView,
     ParcelaViewSet,
+    SubloteDetalleView,
     SublotesParcelaView,
     UltimoEstadoSubloteView,
 )
@@ -30,6 +31,11 @@ urlpatterns = [
         'parcelas/<uuid:parcela_id>/sublotes/',
         SublotesParcelaView.as_view(),
         name='parcela-sublotes',
+    ),
+    path(
+        'sublotes/<uuid:sublote_id>/',
+        SubloteDetalleView.as_view(),
+        name='sublote-detalle',
     ),
     path(
         'sublotes/<uuid:sublote_id>/actividades/',

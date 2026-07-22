@@ -85,26 +85,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 import psycopg2
 
-POSTGRES_RUNNING = False
+base_datos_nombre = 'ecoplataforma_db'
+postgres_activo = False
 try:
-    _conn = psycopg2.connect(
-        dbname='nave_db',
+    _conexion = psycopg2.connect(
+        dbname=base_datos_nombre,
         user='nave_user',
         password='nave_password',
         host='localhost',
         port='5432',
         connect_timeout=2
     )
-    _conn.close()
-    POSTGRES_RUNNING = True
+    _conexion.close()
+    postgres_activo = True
 except Exception:
     pass
 
-if POSTGRES_RUNNING:
+if postgres_activo:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'nave_db',
+            'NAME': base_datos_nombre,
             'USER': 'nave_user',
             'PASSWORD': 'nave_password',
             'HOST': 'localhost',
@@ -177,7 +178,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '5/sec',
+        'user': '100/sec',
     }
 }
 

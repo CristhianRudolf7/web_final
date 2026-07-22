@@ -20,3 +20,13 @@ a { color: inherit; text-decoration: none; }
   .eyebrow { @apply text-xs font-bold uppercase tracking-[0.22em] text-eco-green-primary; }
   .section-shell { @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10; }
 }
+
+/* Estilo para alinear el botón de cierre de los toasts de Sonner al centro vertical en el extremo derecho */
+[data-sonner-toast] [data-close-button] {
+  top: 50% !important;
+  bottom: auto !important;
+  right: 12px !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}

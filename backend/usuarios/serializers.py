@@ -32,3 +32,32 @@ class LoginSerializer(serializers.Serializer):
 
         datos['usuario'] = usuario
         return datos
+
+class RegistroSerializer(serializers.ModelSerializer):
+    """
+    Serializador para el registro de nuevos usuarios en la plataforma.
+    """
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    celular = serializers.CharField(required=True, max_length=15)
+    password = serializers.CharField(write_only=True, min_length=6)
+    confirmar_password = serializers.CharField(write_only=True, min_length=6)
+
+    class Meta:
+        model = Usuario
+        fields = ['dni', 'nombre', 'apellido', 'email', 'celular', 'password', 'confirmar_password']
+
+    def validate(self, datos):
+        if datos.get('password') != datos.get('confirmar_password'):
+            raise serializers.ValidationError({'password': 'Las contraseñas no coinciden.'})
+        # Si el correo viene vacío o como string con espacios, convertirlo a None para evitar violaciones de unique constraint
+        email = datos.get('email')
+        if not email or not str(email).strip():
+            datos['email'] = None
+        return datos
+
+    def create(self, datos_validados):
+        datos_validados.pop('confirmar_password')
+        password = datos_validados.pop('password')
+        usuario = Usuario.objects.create_user(password=password, **datos_validados)
+        return usuario
+

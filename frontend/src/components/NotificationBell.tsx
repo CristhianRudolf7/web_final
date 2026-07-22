@@ -88,7 +88,7 @@ export function NotificationBell() {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 z-50 mt-3 w-96 max-w-[90vw] rounded-eco-lg border border-eco-green-light bg-white shadow-soft">
+        <div className="fixed inset-x-4 top-20 z-50 rounded-eco-lg border border-eco-green-light bg-white shadow-soft sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 sm:max-w-none">
           <div className="flex items-center justify-between border-b border-eco-green-light/70 px-4 py-3">
             <p className="font-bold text-eco-green-dark">Alertas y recomendaciones</p>
             {totalNoLeidas > 0 && (
