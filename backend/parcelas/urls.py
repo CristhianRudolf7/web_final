@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    ActividadesParcelaView,
     ActividadesSubloteView,
     ExportarDatosView,
     HistoricoLecturasView,
@@ -21,6 +22,11 @@ urlpatterns = [
         'parcelas/<uuid:parcela_id>/historico/',
         HistoricoLecturasView.as_view(),
         name='parcela-historico',
+    ),
+    path(
+        'parcelas/<uuid:parcela_id>/actividades/',
+        ActividadesParcelaView.as_view(),
+        name='parcela-actividades',
     ),
     path(
         'parcelas/<uuid:parcela_id>/exportar/',

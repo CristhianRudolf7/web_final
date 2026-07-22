@@ -16,6 +16,8 @@ export interface Parcela {
   agricultor?: string
   nombre: string
   ubicacion: string
+  ancho: number | string
+  largo: number | string
   cultivo_actual?: string | null
   cultivo_nombre?: string | null
   agricultor_nombre: string
@@ -51,8 +53,9 @@ export interface Sublote {
   id: string
   parcela: string
   poligono: PuntoNormalizado[]
-  ancho_escala: number | string
-  largo_escala: number | string
+  ancho?: number | string
+  largo?: number | string
+  area_m2?: number
   fecha_creacion: string
   ultimo_riego?: RegistroActividad | null
   ultimo_sensores?: RegistroActividad | null

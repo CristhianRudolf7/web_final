@@ -52,6 +52,17 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', alClickAfuera)
   }, [])
 
+  const formatFechaHora = (iso?: string) => {
+    if (!iso) return ''
+    return new Date(iso).toLocaleString('es-PE', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
   const marcarUnaLeida = async (id: string) => {
     setAlertas((prev) => prev.map((a) => (a.id === id ? { ...a, leida: true } : a)))
     setTotalNoLeidas((n) => Math.max(0, n - 1))
@@ -77,28 +88,28 @@ export function NotificationBell() {
       <button
         onClick={() => setAbierto((v) => !v)}
         aria-label="Notificaciones"
-        className="relative grid h-11 w-11 place-items-center rounded-full border border-eco-green-light bg-white text-xl transition hover:border-eco-green-primary"
+        className="relative grid h-11 w-11 place-items-center rounded-full border border-eco-green-light bg-white text-xl transition hover:border-eco-green-primary cursor-pointer"
       >
         🔔
         {totalNoLeidas > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white shadow-xs">
             {totalNoLeidas > 9 ? '9+' : totalNoLeidas}
           </span>
         )}
       </button>
 
       {abierto && (
-        <div className="fixed inset-x-4 top-20 z-50 rounded-eco-lg border border-eco-green-light bg-white shadow-soft sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 sm:max-w-none">
-          <div className="flex items-center justify-between border-b border-eco-green-light/70 px-4 py-3">
-            <p className="font-bold text-eco-green-dark">Alertas y recomendaciones</p>
+        <div className="fixed inset-x-4 top-20 z-50 rounded-eco-lg border border-eco-green-light bg-white shadow-xl sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:w-96 sm:max-w-none">
+          <div className="flex items-center justify-between border-b border-eco-green-light/70 px-4 py-3 bg-slate-50/50 rounded-t-eco-lg">
+            <p className="font-extrabold text-eco-green-dark text-sm">Alertas y recomendaciones</p>
             {totalNoLeidas > 0 && (
-              <button onClick={marcarTodas} className="text-xs font-semibold text-eco-green-primary hover:underline">
+              <button onClick={marcarTodas} className="text-xs font-semibold text-eco-green-primary hover:underline cursor-pointer">
                 Marcar todas como leídas
               </button>
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto p-2">
+          <div className="max-h-96 overflow-y-auto p-2.5 space-y-2">
             {cargando && alertas.length === 0 && (
               <p className="px-3 py-6 text-center text-sm text-slate-400">Cargando…</p>
             )}
@@ -108,8 +119,8 @@ export function NotificationBell() {
             {alertas.map((alerta) => (
               <div
                 key={alerta.id}
-                className={`mb-2 rounded-xl border p-3 text-sm transition ${estilosNivel[alerta.nivel]} ${
-                  alerta.leida ? 'opacity-50' : ''
+                className={`rounded-xl border p-3.5 text-sm transition shadow-xs ${estilosNivel[alerta.nivel]} ${
+                  alerta.leida ? 'opacity-55' : ''
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -119,14 +130,17 @@ export function NotificationBell() {
                   {!alerta.leida && (
                     <button
                       onClick={() => marcarUnaLeida(alerta.id)}
-                      className="shrink-0 text-xs font-semibold underline"
+                      className="shrink-0 text-xs font-semibold underline hover:opacity-80 cursor-pointer"
                     >
                       Marcar leída
                     </button>
                   )}
                 </div>
-                <p className="mt-1 text-slate-600">{alerta.mensaje}</p>
-                <p className="mt-1 text-xs text-slate-400">{alerta.parcela_nombre}</p>
+                <p className="mt-1 text-slate-600 leading-relaxed text-xs">{alerta.mensaje}</p>
+                <div className="mt-2.5 pt-2 border-t border-black/5 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                  <span className="font-bold text-eco-green-dark">{alerta.parcela_nombre}</span>
+                  <span>🕒 {formatFechaHora(alerta.fecha_creacion)}</span>
+                </div>
               </div>
             ))}
           </div>

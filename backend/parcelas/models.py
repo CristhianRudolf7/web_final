@@ -19,6 +19,12 @@ class Parcela(models.Model):
     )
     nombre = models.CharField('Nombre', max_length=255)
     ubicacion = models.CharField('Ubicación', max_length=255)
+    ancho = models.DecimalField(
+        'Ancho en metros', max_digits=10, decimal_places=2, default=100.00
+    )
+    largo = models.DecimalField(
+        'Largo en metros', max_digits=10, decimal_places=2, default=100.00
+    )
     cultivo_actual = models.ForeignKey(
         'productos.Producto',
         on_delete=models.SET_NULL,
@@ -36,7 +42,7 @@ class Parcela(models.Model):
         verbose_name_plural = 'Parcelas'
 
     def __str__(self):
-        return f'{self.nombre} - {self.ubicacion}'
+        return f'{self.nombre} - {self.ubicacion} ({self.ancho}m x {self.largo}m)'
 
 
 class LecturaSensor(models.Model):
@@ -85,12 +91,6 @@ class Sublote(models.Model):
         verbose_name='Parcela',
     )
     poligono = models.JSONField('Poligono')
-    ancho_escala = models.DecimalField(
-        'Ancho real del plano en metros', max_digits=10, decimal_places=2
-    )
-    largo_escala = models.DecimalField(
-        'Largo real del plano en metros', max_digits=10, decimal_places=2
-    )
     fecha_creacion = models.DateTimeField('Fecha de creacion', auto_now_add=True)
 
     class Meta:
@@ -98,6 +98,22 @@ class Sublote(models.Model):
         ordering = ['-fecha_creacion']
         verbose_name = 'Sublote'
         verbose_name_plural = 'Sublotes'
+
+    @property
+    def area_m2(self):
+        """Calcula el área estimada del polígono en m² usando el ancho y largo de la parcela padre."""
+        if not self.poligono or len(self.poligono) < 3:
+            return 0.0
+        suma = 0.0
+        n = len(self.poligono)
+        for i in range(n):
+            j = (i + 1) % n
+            xi, yi = float(self.poligono[i]['x']), float(self.poligono[i]['y'])
+            xj, yj = float(self.poligono[j]['x']), float(self.poligono[j]['y'])
+            suma += (xi * yj) - (xj * yi)
+        area_norm = abs(suma) / 2.0
+        area_real = area_norm * (float(self.parcela.ancho) * float(self.parcela.largo))
+        return round(area_real, 2)
 
     def __str__(self):
         return f'Sublote {self.id} - {self.parcela.nombre}'
@@ -141,7 +157,8 @@ class RegistroActividad(models.Model):
         verbose_name_plural = 'Registros de actividad'
 
     def save(self, *args, **kwargs):
-        self.fecha_hora = timezone.now()
+        if not self.fecha_hora:
+            self.fecha_hora = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self):

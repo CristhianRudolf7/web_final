@@ -7,7 +7,7 @@ from .models import LecturaSensor, Parcela, RegistroActividad, Sublote
 class ParcelaAdmin(admin.ModelAdmin):
     """Configuración del admin para el modelo Parcela."""
 
-    list_display = ('nombre', 'ubicacion', 'agricultor', 'cultivo_actual', 'fecha_creacion')
+    list_display = ('nombre', 'ubicacion', 'ancho', 'largo', 'agricultor', 'cultivo_actual', 'fecha_creacion')
     list_filter = ('cultivo_actual', 'fecha_creacion')
     search_fields = ('nombre', 'ubicacion')
     readonly_fields = ('id', 'fecha_creacion')
@@ -26,7 +26,7 @@ class LecturaSensorAdmin(admin.ModelAdmin):
 class SubloteAdmin(admin.ModelAdmin):
     """Configuracion del admin para el modelo Sublote."""
 
-    list_display = ('id', 'parcela', 'ancho_escala', 'largo_escala', 'fecha_creacion')
+    list_display = ('id', 'parcela', 'area_m2', 'fecha_creacion')
     list_filter = ('parcela', 'fecha_creacion')
     readonly_fields = ('id', 'fecha_creacion')
 

@@ -16,6 +16,8 @@ class ParcelaSerializer(serializers.ModelSerializer):
             'agricultor',
             'nombre',
             'ubicacion',
+            'ancho',
+            'largo',
             'cultivo_actual',
             'fecha_creacion',
             'cultivo_nombre',
@@ -30,6 +32,16 @@ class ParcelaSerializer(serializers.ModelSerializer):
     def get_agricultor_nombre(self, obj):
         """Retorna el nombre completo del agricultor."""
         return f'{obj.agricultor.nombre} {obj.agricultor.apellido}'
+
+    def validate_ancho(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('El ancho debe ser mayor a cero.')
+        return value
+
+    def validate_largo(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('El largo debe ser mayor a cero.')
+        return value
 
 
 class LecturaSensorSerializer(serializers.ModelSerializer):
@@ -59,6 +71,9 @@ class LecturaSensorSerializer(serializers.ModelSerializer):
 class SubloteSerializer(serializers.ModelSerializer):
     """Serializador de sublotes con validacion de puntos normalizados y ultimo estado."""
 
+    ancho = serializers.ReadOnlyField(source='parcela.ancho')
+    largo = serializers.ReadOnlyField(source='parcela.largo')
+    area_m2 = serializers.ReadOnlyField()
     ultimo_riego = serializers.SerializerMethodField()
     ultimo_sensores = serializers.SerializerMethodField()
 
@@ -68,13 +83,14 @@ class SubloteSerializer(serializers.ModelSerializer):
             'id',
             'parcela',
             'poligono',
-            'ancho_escala',
-            'largo_escala',
+            'ancho',
+            'largo',
+            'area_m2',
             'fecha_creacion',
             'ultimo_riego',
             'ultimo_sensores',
         ]
-        read_only_fields = ['id', 'parcela', 'fecha_creacion']
+        read_only_fields = ['id', 'parcela', 'ancho', 'largo', 'area_m2', 'fecha_creacion']
 
     def get_ultimo_riego(self, obj):
         ultimo = obj.actividades.filter(tipo_actividad=RegistroActividad.RIEGO).first()
@@ -107,16 +123,6 @@ class SubloteSerializer(serializers.ModelSerializer):
                     'Las coordenadas deben estar normalizadas entre 0.0 y 1.0.'
                 )
 
-        return value
-
-    def validate_ancho_escala(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('El ancho debe ser mayor que cero.')
-        return value
-
-    def validate_largo_escala(self, value):
-        if value <= 0:
-            raise serializers.ValidationError('El largo debe ser mayor que cero.')
         return value
 
 

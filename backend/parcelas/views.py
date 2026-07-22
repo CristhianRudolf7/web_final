@@ -43,14 +43,13 @@ class ParcelaViewSet(viewsets.ModelViewSet):
 class HistoricoLecturasView(APIView):
     """
     Vista para obtener el histórico de lecturas de sensores de una parcela.
-    Soporta filtrado por rango de fechas con fecha_inicio y fecha_fin.
+    Combina las lecturas de LecturaSensor y RegistroActividad (sensores por sublote).
     """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, parcela_id):
         """Retorna las lecturas de sensores de la parcela indicada."""
-        # Verificar que la parcela existe y pertenece al usuario
         try:
             parcela = Parcela.objects.get(
                 id=parcela_id, agricultor=request.user
@@ -61,19 +60,53 @@ class HistoricoLecturasView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        lecturas = LecturaSensor.objects.filter(parcela=parcela)
-
-        # Filtrado por rango de fechas
         fecha_inicio = request.query_params.get('fecha_inicio')
         fecha_fin = request.query_params.get('fecha_fin')
 
-        if fecha_inicio:
-            lecturas = lecturas.filter(fecha_registro__gte=fecha_inicio)
-        if fecha_fin:
-            lecturas = lecturas.filter(fecha_registro__lte=fecha_fin)
+        resultados = []
 
-        serializer = LecturaSensorSerializer(lecturas, many=True)
-        return Response(serializer.data)
+        # 1. Lecturas directas de Parcela (LecturaSensor)
+        lecturas_directas = LecturaSensor.objects.filter(parcela=parcela)
+        if fecha_inicio:
+            lecturas_directas = lecturas_directas.filter(fecha_registro__gte=fecha_inicio)
+        if fecha_fin:
+            lecturas_directas = lecturas_directas.filter(fecha_registro__lte=fecha_fin)
+
+        for l in lecturas_directas:
+            resultados.append({
+                'id': str(l.id),
+                'parcela': str(l.parcela_id),
+                'temperatura': float(l.temperatura),
+                'humedad': float(l.humedad),
+                'ph': float(l.ph),
+                'fecha_registro': l.fecha_registro.isoformat(),
+            })
+
+        # 2. Lecturas de sensores registradas en Sublotes (RegistroActividad)
+        actividades_sensores = RegistroActividad.objects.filter(
+            sublote__parcela=parcela,
+            tipo_actividad=RegistroActividad.SENSORES
+        )
+        if fecha_inicio:
+            actividades_sensores = actividades_sensores.filter(fecha_hora__gte=fecha_inicio)
+        if fecha_fin:
+            actividades_sensores = actividades_sensores.filter(fecha_hora__lte=fecha_fin)
+
+        for a in actividades_sensores:
+            if a.temperatura is not None or a.humedad is not None or a.ph is not None:
+                resultados.append({
+                    'id': str(a.id),
+                    'parcela': str(parcela.id),
+                    'temperatura': float(a.temperatura) if a.temperatura is not None else 0.0,
+                    'humedad': float(a.humedad) if a.humedad is not None else 0.0,
+                    'ph': float(a.ph) if a.ph is not None else 0.0,
+                    'fecha_registro': a.fecha_hora.isoformat(),
+                })
+
+        # Ordenar resultados por fecha más reciente primero
+        resultados.sort(key=lambda x: x['fecha_registro'], reverse=True)
+
+        return Response(resultados)
 
 
 class ExportarDatosView(APIView):
@@ -380,13 +413,9 @@ class IngestaMasivaSensoresView(APIView):
         for sublote_id in sublotes_afectados:
             invalidar_ultimo_estado(sublote_id)
 
-        try:
-            from notificaciones.tasks import evaluar_sublotes_task
-            evaluar_sublotes_task.delay(sublotes_afectados)
-        except Exception:
-            from notificaciones.services import evaluar_ultima_lectura_sublote
-            for sublote_id in sublotes_afectados:
-                evaluar_ultima_lectura_sublote(sublote_id)
+        from notificaciones.services import evaluar_ultima_lectura_sublote
+        for sublote_id in sublotes_afectados:
+            evaluar_ultima_lectura_sublote(sublote_id)
 
         return Response(
             {'lecturas_insertadas': creados_total, 'sublotes_afectados': len(sublotes_afectados)},
@@ -413,3 +442,35 @@ class SubloteDetalleView(APIView):
                 {'error': 'Sublote no encontrado.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class ActividadesParcelaView(APIView):
+    """Retorna las actividades (riego o sensores por sublote) asociadas a una parcela."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, parcela_id):
+        try:
+            parcela = Parcela.objects.get(id=parcela_id, agricultor=request.user)
+        except Parcela.DoesNotExist:
+            return Response(
+                {'error': 'Parcela no encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        actividades = RegistroActividad.objects.filter(sublote__parcela=parcela).order_by('-fecha_hora')
+
+        tipo = request.query_params.get('tipo')
+        if tipo:
+            actividades = actividades.filter(tipo_actividad=tipo)
+
+        fecha_inicio = request.query_params.get('fecha_inicio')
+        fecha_fin = request.query_params.get('fecha_fin')
+
+        if fecha_inicio:
+            actividades = actividades.filter(fecha_hora__gte=fecha_inicio)
+        if fecha_fin:
+            actividades = actividades.filter(fecha_hora__lte=fecha_fin)
+
+        serializer = RegistroActividadSerializer(actividades, many=True)
+        return Response(serializer.data)

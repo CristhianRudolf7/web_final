@@ -25,6 +25,8 @@ export function ParcelasPanel() {
   // Formulario crear parcela
   const [nuevaNombre, setNuevaNombre] = useState('')
   const [nuevaUbicacion, setNuevaUbicacion] = useState('')
+  const [nuevaAncho, setNuevaAncho] = useState('100')
+  const [nuevaLargo, setNuevaLargo] = useState('100')
   const [nuevaCultivoId, setNuevaCultivoId] = useState('')
 
   // Estado de acción
@@ -81,6 +83,15 @@ export function ParcelasPanel() {
       return
     }
 
+    const a = Number(nuevaAncho)
+    const l = Number(nuevaLargo)
+    if (isNaN(a) || a <= 0 || isNaN(l) || l <= 0) {
+      const msg = 'El ancho y el largo deben ser números mayores a cero.'
+      setErrorModal(msg)
+      toast.error(msg)
+      return
+    }
+
     setCargandoAccion(true)
     const nombreGuardar = nuevaNombre.trim()
     try {
@@ -89,6 +100,8 @@ export function ParcelasPanel() {
         {
           nombre: nombreGuardar,
           ubicacion: nuevaUbicacion.trim(),
+          ancho: a,
+          largo: l,
           cultivo_actual: nuevaCultivoId || null,
         },
         { withCredentials: true }
@@ -96,6 +109,8 @@ export function ParcelasPanel() {
       setModalCrear(false)
       setNuevaNombre('')
       setNuevaUbicacion('')
+      setNuevaAncho('100')
+      setNuevaLargo('100')
       setNuevaCultivoId('')
       toast.success(`Parcela "${nombreGuardar}" registrada correctamente.`)
       await cargarDatos()
@@ -283,6 +298,7 @@ export function ParcelasPanel() {
               <tr>
                 <th className="px-6 py-4">Nombre</th>
                 <th className="px-6 py-4">Ubicación</th>
+                <th className="px-6 py-4">Dimensiones</th>
                 <th className="px-6 py-4">Cultivo Actual</th>
                 <th className="px-6 py-4">Fecha</th>
                 <th className="px-6 py-4 text-center">Acciones</th>
@@ -296,6 +312,9 @@ export function ParcelasPanel() {
                     <div className="text-xs text-slate-400 mt-0.5">{parcela.agricultor_nombre}</div>
                   </td>
                   <td className="px-6 py-4">{parcela.ubicacion}</td>
+                  <td className="px-6 py-4 font-medium text-slate-700">
+                    {parcela.ancho} m × {parcela.largo} m
+                  </td>
                   <td className="px-6 py-4">
                     {parcela.cultivo_nombre ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-eco-green-primary">
@@ -399,6 +418,37 @@ export function ParcelasPanel() {
                   placeholder="Ej: Huaral, Lima"
                   className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-eco-green-dark mb-1">
+                    Ancho (m) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    value={nuevaAncho}
+                    onChange={(e) => setNuevaAncho(e.target.value)}
+                    placeholder="Ej: 100"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-eco-green-dark mb-1">
+                    Largo (m) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.1"
+                    value={nuevaLargo}
+                    onChange={(e) => setNuevaLargo(e.target.value)}
+                    placeholder="Ej: 100"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-eco-green-primary focus:ring-2 focus:ring-eco-green-primary/10"
+                  />
+                </div>
               </div>
 
               <div>

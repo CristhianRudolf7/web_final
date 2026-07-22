@@ -108,6 +108,8 @@ def crear_datos_semilla():
         {
             'nombre': 'Fundo San José - Lote Piña',
             'ubicacion': 'Huaral, Lima',
+            'ancho': Decimal('120.00'),
+            'largo': Decimal('100.00'),
             'cultivo_actual': productos_creados[0],
             'dias_creacion_parcela': 40,
             'dias_creacion_sublote': 38,
@@ -119,6 +121,8 @@ def crear_datos_semilla():
         {
             'nombre': 'Valle Fértil - Lote Manzana',
             'ubicacion': 'Cañete, Lima',
+            'ancho': Decimal('150.00'),
+            'largo': Decimal('100.00'),
             'cultivo_actual': productos_creados[1],
             'dias_creacion_parcela': 30,
             'dias_creacion_sublote': 28,
@@ -130,6 +134,8 @@ def crear_datos_semilla():
         {
             'nombre': 'Fundo El Mirador - Lote Kiwi',
             'ubicacion': 'Oxapampa, Pasco',
+            'ancho': Decimal('100.00'),
+            'largo': Decimal('80.00'),
             'cultivo_actual': productos_creados[2],
             'dias_creacion_parcela': 20,
             'dias_creacion_sublote': 18,
@@ -141,6 +147,8 @@ def crear_datos_semilla():
         {
             'nombre': 'Hacienda La Palma - Lote Plátano',
             'ubicacion': 'Satipo, Junín',
+            'ancho': Decimal('200.00'),
+            'largo': Decimal('150.00'),
             'cultivo_actual': productos_creados[3],
             'dias_creacion_parcela': 10,
             'dias_creacion_sublote': 9,
@@ -152,16 +160,18 @@ def crear_datos_semilla():
     ]
 
     for idx, config in enumerate(configuracion_parcelas):
-        # A. Crear Parcela
+        # A. Crear Parcela con dimensiones de terreno (ancho x largo)
         fecha_parcela = ahora - timedelta(days=config['dias_creacion_parcela'], hours=2, minutes=30)
         parcela = Parcela.objects.create(
             nombre=config['nombre'],
             agricultor=agricultor,
             ubicacion=config['ubicacion'],
+            ancho=config['ancho'],
+            largo=config['largo'],
             cultivo_actual=config['cultivo_actual']
         )
         Parcela.objects.filter(pk=parcela.pk).update(fecha_creacion=fecha_parcela)
-        print(f"\nParcela registrada: {parcela.nombre} (Creada: {fecha_parcela.strftime('%Y-%m-%d %H:%M')})")
+        print(f"\nParcela registrada: {parcela.nombre} ({config['ancho']}m x {config['largo']}m) (Creada: {fecha_parcela.strftime('%Y-%m-%d %H:%M')})")
 
         # B. Crear Sublote con coordenadas JSON normalizadas (polígono pequeño en esquina superior izquierda)
         fecha_sublote = ahora - timedelta(days=config['dias_creacion_sublote'], hours=3, minutes=15)
@@ -172,9 +182,7 @@ def crear_datos_semilla():
                 {'x': 0.35, 'y': 0.05},
                 {'x': 0.35, 'y': 0.35},
                 {'x': 0.05, 'y': 0.35}
-            ],
-            ancho_escala=Decimal('100.00'),
-            largo_escala=Decimal('100.00')
+            ]
         )
         Sublote.objects.filter(pk=sublote.pk).update(fecha_creacion=fecha_sublote)
 

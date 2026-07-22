@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import type { PuntoNormalizado, RegistroActividad, Sublote } from '../types'
+import type { Parcela, PuntoNormalizado, RegistroActividad, Sublote } from '../types'
 import { ConfirmModal } from '../components/ConfirmModal'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -113,29 +113,30 @@ export function MapaInteractivo() {
       return
     }
 
-    const cargarSublotes = async () => {
+    const cargarMapaYSublotes = async () => {
       try {
         setError('')
-        const response = await axios.get<Sublote[]>(`${API_BASE}/parcelas/${uuid}/sublotes/`, {
-          withCredentials: true,
-        })
-        const sublotesBase = response.data
+        // Cargar datos de la Parcela padre (ancho y largo) y sus sublotes
+        const [resParcela, resSublotes] = await Promise.all([
+          axios.get<Parcela>(`${API_BASE}/parcelas/${uuid}/`, { withCredentials: true }),
+          axios.get<Sublote[]>(`${API_BASE}/parcelas/${uuid}/sublotes/`, { withCredentials: true }),
+        ])
 
-        if (sublotesBase.length > 0) {
-          setAnchoLote(sublotesBase[0].ancho_escala.toString())
-          setLargoLote(sublotesBase[0].largo_escala.toString())
+        if (resParcela.data) {
+          setAnchoLote(resParcela.data.ancho.toString())
+          setLargoLote(resParcela.data.largo.toString())
         }
 
-        setSublotes(sublotesBase)
+        setSublotes(resSublotes.data)
       } catch (err) {
         console.error('No se pudo cargar el mapa', err)
-        setError('No se pudieron cargar los sublotes de la parcela.')
+        setError('No se pudieron cargar los datos de la parcela y sus sublotes.')
       } finally {
         setLoading(false)
       }
     }
 
-    cargarSublotes()
+    cargarMapaYSublotes()
   }, [uuid, uuidValido])
 
   const puntosPolyline = useMemo(
@@ -195,7 +196,7 @@ export function MapaInteractivo() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const handleActualizarEscala = () => {
+  const handleActualizarEscala = async () => {
     const a = Number(anchoLote)
     const l = Number(largoLote)
     if (isNaN(a) || a <= 0 || isNaN(l) || l <= 0) {
@@ -204,18 +205,29 @@ export function MapaInteractivo() {
       toast.error(msg)
       return
     }
-    setError('')
-    setSublotes((prev) =>
-      prev.map((s) => ({
-        ...s,
-        ancho_escala: a,
-        largo_escala: l,
-      }))
-    )
-    const msgExito = `✓ Escala del lote actualizada a ${a} m × ${l} m`
-    setMensajeEscalaGuardada(msgExito)
-    toast.success(msgExito)
-    setTimeout(() => setMensajeEscalaGuardada(''), 4000)
+    try {
+      setError('')
+      await axios.patch(
+        `${API_BASE}/parcelas/${uuid}/`,
+        { ancho: a, largo: l },
+        { withCredentials: true }
+      )
+      setSublotes((prev) =>
+        prev.map((s) => ({
+          ...s,
+          ancho: a,
+          largo: l,
+          area_m2: s.poligono ? calcularAreaSublote(s.poligono, a, l) : s.area_m2,
+        }))
+      )
+      const msgExito = `✓ Dimensiones de la Parcela actualizadas a ${a} m × ${l} m`
+      setMensajeEscalaGuardada(msgExito)
+      toast.success(msgExito)
+      setTimeout(() => setMensajeEscalaGuardada(''), 4000)
+    } catch (err) {
+      console.error('No se pudo actualizar las dimensiones de la parcela', err)
+      toast.error('No se pudieron actualizar las dimensiones de la parcela.')
+    }
   }
 
   const guardarSublote = async (poligonoPuntos: PuntoNormalizado[] = puntosDibujo) => {
@@ -238,8 +250,6 @@ export function MapaInteractivo() {
         `${API_BASE}/parcelas/${uuid}/sublotes/`,
         {
           poligono: poligonoPuntos,
-          ancho_escala: anchoLote,
-          largo_escala: largoLote,
         },
         { withCredentials: true }
       )
@@ -251,7 +261,7 @@ export function MapaInteractivo() {
       toast.success('¡Sublote creado y guardado exitosamente!')
     } catch (err: any) {
       console.error('No se pudo guardar el sublote', err)
-      const msg = err.response?.data?.error || 'No se pudo guardar el sublote. Revisa la escala y el polígono.'
+      const msg = err.response?.data?.error || 'No se pudo guardar el sublote.'
       setError(msg)
       toast.error(msg)
     } finally {
@@ -346,18 +356,52 @@ export function MapaInteractivo() {
     }
   }
 
-  const colorSublote = (sublote: Sublote) => {
+  const bordeSublote = (sublote: Sublote) => {
+    const esSeleccionado = subloteActivo?.id === sublote.id
     if (modo === 'humedad') {
-      const valor = Number(sublote.ultimo_sensores?.humedad ?? 0)
-      return `rgba(46, 125, 50, ${Math.min(Math.max(valor / 100, 0.08), 0.85)})`
+      return {
+        stroke: '#2563EB',
+        strokeWidth: esSeleccionado ? '0.6' : '0.3',
+      }
     }
     if (modo === 'temperatura') {
-      const valor = Number(sublote.ultimo_sensores?.temperatura ?? 0)
-      const ratio = Math.min(Math.max((valor - 10) / 30, 0), 1)
-      const r = Math.round(201 - ratio * 96)
-      const g = Math.round(216 - ratio * 92)
-      const b = Math.round(121 - ratio * 56)
-      return `rgba(${r}, ${g}, ${b}, 0.72)`
+      return {
+        stroke: '#DC2626',
+        strokeWidth: esSeleccionado ? '0.6' : '0.3',
+      }
+    }
+    return {
+      stroke: '#2E7D32',
+      strokeWidth: esSeleccionado ? '1.2' : '0.5',
+    }
+  }
+
+  const colorSublote = (sublote: Sublote) => {
+    if (modo === 'humedad') {
+      const valor = Number(sublote.ultimo_sensores?.humedad)
+      if (!sublote.ultimo_sensores || isNaN(valor)) {
+        return 'rgba(191, 219, 254, 0.40)'
+      }
+      // Escala de azul muy notoria según humedad (0% - 100%)
+      const ratio = Math.min(Math.max(valor / 100, 0.1), 1)
+      const r = Math.round(219 - ratio * 190) // 219 -> 29
+      const g = Math.round(234 - ratio * 156) // 234 -> 78
+      const b = Math.round(254 - ratio * 38)  // 254 -> 216
+      const alpha = 0.40 + ratio * 0.50       // 0.40 -> 0.90
+      return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`
+    }
+    if (modo === 'temperatura') {
+      const valor = Number(sublote.ultimo_sensores?.temperatura)
+      if (!sublote.ultimo_sensores || isNaN(valor)) {
+        return 'rgba(254, 202, 202, 0.40)'
+      }
+      // Escala de rojo notoria según temperatura (10°C - 40°C)
+      const ratio = Math.min(Math.max((valor - 10) / 30, 0.05), 1)
+      const r = Math.round(254 - ratio * 34)  // 254 -> 220
+      const g = Math.round(202 - ratio * 164) // 202 -> 38
+      const b = Math.round(202 - ratio * 164) // 202 -> 38
+      const alpha = 0.40 + ratio * 0.50       // 0.40 -> 0.90
+      return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`
     }
     return 'rgba(46, 125, 50, 0.16)'
   }
@@ -449,6 +493,21 @@ export function MapaInteractivo() {
               </button>
             </div>
           </div>
+          {modo === 'humedad' && (
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 px-3.5 py-2 rounded-xl border border-blue-200 shadow-xs">
+              <span>💧 Escala de Humedad:</span>
+              <span className="h-3 w-28 rounded-full bg-gradient-to-r from-blue-200 via-blue-400 to-blue-700"></span>
+              <span>0% (Seco) → 100% (Húmedo)</span>
+            </div>
+          )}
+
+          {modo === 'temperatura' && (
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold text-red-700 bg-red-50 px-3.5 py-2 rounded-xl border border-red-200 shadow-xs">
+              <span>🌡️ Escala de Temperatura:</span>
+              <span className="h-3 w-28 rounded-full bg-gradient-to-r from-rose-200 via-rose-400 to-red-600"></span>
+              <span>10°C (Fresco) → 40°C (Cálido)</span>
+            </div>
+          )}
 
           <svg
             viewBox="0 0 100 62"
@@ -465,22 +524,25 @@ export function MapaInteractivo() {
             </defs>
             <rect width="100" height="62" fill="url(#map-grid)" />
 
-            {sublotes.map((sublote, index) => (
-              <polygon
-                key={sublote.id}
-                points={sublote.poligono.map((p) => `${p.x * 100},${p.y * 62}`).join(' ')}
-                fill={colorSublote(sublote)}
-                stroke="#2E7D32"
-                strokeWidth={subloteActivo?.id === sublote.id ? "1.5" : "0.65"}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  setSubloteActivo(sublote)
-                }}
-                className="cursor-pointer transition hover:opacity-80"
-              >
-                <title>{`Sublote ${index + 1}`}</title>
-              </polygon>
-            ))}
+            {sublotes.map((sublote, index) => {
+              const { stroke, strokeWidth } = bordeSublote(sublote)
+              return (
+                <polygon
+                  key={sublote.id}
+                  points={sublote.poligono.map((p) => `${p.x * 100},${p.y * 62}`).join(' ')}
+                  fill={colorSublote(sublote)}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setSubloteActivo(sublote)
+                  }}
+                  className="cursor-pointer transition hover:opacity-85"
+                >
+                  <title>{`Sublote ${index + 1}`}</title>
+                </polygon>
+              )
+            })}
 
             {puntosDibujo.length > 1 && (
               <polyline points={puntosPolyline} fill="none" stroke="#1B5E20" strokeWidth="0.7" />
@@ -501,7 +563,7 @@ export function MapaInteractivo() {
               </p>
               <div className="mt-4 space-y-3">
                 <button
-                  onClick={guardarSublote}
+                  onClick={() => guardarSublote()}
                   disabled={saving || !anchoLote || !largoLote}
                   className="w-full rounded-xl bg-eco-green-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-eco-green-dark disabled:cursor-not-allowed disabled:bg-slate-300 cursor-pointer"
                 >
@@ -685,9 +747,13 @@ export function MapaInteractivo() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-600">
                   {sublotes.map((sublote, idx) => {
-                    const anchoSub = Number(sublote.ancho_escala) || anchoNum
-                    const largoSub = Number(sublote.largo_escala) || largoNum
-                    const areaM2 = calcularAreaSublote(sublote.poligono, anchoSub, largoSub)
+                    const areaM2 =
+                      sublote.area_m2 ??
+                      calcularAreaSublote(
+                        sublote.poligono,
+                        Number(sublote.ancho) || anchoNum,
+                        Number(sublote.largo) || largoNum
+                      )
                     const porcArea = areaLoteTotal > 0 ? (areaM2 / areaLoteTotal) * 100 : 0
                     const esSeleccionado = subloteActivo?.id === sublote.id
 
